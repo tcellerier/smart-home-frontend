@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>RATP dashboard</title>
+    <!-- Bootstrap -->
+    <link href="/dashboard/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/dashboard/bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <STYLE type="text/css">
+    <!--
+
+  .blocmodule { 
+      position: relative;
+      background-color: #363636;
+      border: 1px solid #4c4c4c;
+      margin: 5px 4px 0px 4px;
+      border-radius: 9px;
+    }
+
+  .blocmodule-title { 
+      position: absolute;
+      color: #96AA4F;
+      float: right;
+      top: 10px;
+      right: 20px;
+      text-align: left;
+  }
+
+  .blocmodule-title-logo {
+      width: 130px;
+  }
+
+  .blocmodule-body { 
+      color: white;
+      position: relative;
+      padding: 5px 0px 0px 0px;
+      text-align: center;
+  }
+    -->
+    </STYLE>
+
+  </head>
+
+  <body>
+        
+  <div class="blocmodule">
+    <div class="blocmodule-title"><img class="blocmodule-title-logo" id="ratp-title" src="/dashboard/images/ratp.png" alt="Ratp"></div>
+    <div class="blocmodule-body" id="textRATP" style="text-align: left; padding-left: 5px; font-size: 17px;">
+      <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    </div>
+  </div>
+       
+
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <!-- Include all compiled plugins (below), or include individual files as needed -->
+  <script src="/dashboard/jquery-3.1.0.min.js"></script>
+  <script src="/dashboard/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+
+  <script  type="text/javascript">
+
+
+/* Fonction d'exécution régulière car le SetInterval ne semble par marcher sur la tablette */
+function SetTimeoutRecursive(TheFunction, Delay_seconds) {
+    $( "html" ).stop(true,true);  // Workaround pour que la fonction s'exécute bien périodiquement (et pas qu'1 fois toutes les 15 min)
+    TheFunction();
+    window.setTimeout(function() { SetTimeoutRecursive(TheFunction, Delay_seconds); }, Delay_seconds * 1000 ); 
+}
+
+
+
+
+// Module RATP, API retro engineered par Pierre Grimaud
+AllMetroRatpURL = "https://api-ratp.pierre-grimaud.fr/v2/traffic/";
+
+
+function GetAllRatpMAJ() {
+
+  $.getJSON( AllMetroRatpURL , function( data, textStatus, jqXHR ) {
+
+    // Si pas d'erreur
+    if(typeof data.response != "undefined") {
+
+      // On réinitialise la page
+      $( "#textRATP" ).html( ' ' );
+
+      // On boucle sur le monde de transport : metro, rer ou tramway
+      $.each(data.response, function( indexMode, elementMode ) {
+
+        transportMode = indexMode.slice(0, -1);
+
+        // On boucle sur les lignes du monde de transport
+        $.each(elementMode, function( indexLigne, elementLigne ) {
+    
+          // On crée
+          $( "#textRATP" ).append('<div id="' + transportMode + elementLigne.line + '"></div>\n');
+          
+          $( "#" + transportMode + elementLigne.line ).html('<img src="/dashboard/images/ratp/ratp_' + transportMode + elementLigne.line + '.png" alt="' + elementLigne.line + '">&nbsp;');
+
+          if ( elementLigne.slug == "normal" ) {
+              $( "#" + transportMode + elementLigne.line ).css("color", "white");
+          }
+          else if (elementLigne.slug == "critique" ) {
+              $( "#" + transportMode + elementLigne.line ).css("color", "red"); 
+              $( "#" + transportMode + elementLigne.line ).append( '<img alt="critique" src="/dashboard/images/ratp/ratp_critique.png">&nbsp;' );
+          }
+          else if (elementLigne.slug == "alerte" ) {
+              $( "#" + transportMode + elementLigne.line ).css("color", "orange"); 
+              $( "#" + transportMode + elementLigne.line ).append( '<img alt="alerte" src="/dashboard/images/ratp/ratp_alerte.png">&nbsp;' );
+          }
+          else if (elementLigne.slug == "normal_trav") {
+              $( "#" + transportMode + elementLigne.line ).css("color", "white");
+              $( "#" + transportMode + elementLigne.line ).append( '<img alt="critique" src="/dashboard/images/ratp/ratp_travaux.png">&nbsp;' );
+          }
+
+          $( "#" + transportMode + elementLigne.line ).append( elementLigne.message );
+
+        });
+
+        //$( "#textRATP" ).append( '\n<br>\n' ); // Saut de ligne entre les modes de transport
+
+      });
+
+    }
+  
+    else { // Erreur de connexion
+      $( "#textRATP" ).html( "Erreur de connexion à l'API :<br>" + AllMetroRatpURL + "<br><br>" + JSON.stringify(data, null, 2) );
+    }
+
+  })
+      
+    .fail(function(jqXHR, textStatus, errorThrown) {  // Erreur de connexion
+      $( "#textRATP" ).html( "Erreur de connexion à l'API :<bt>" + AllMetroRatpURL + "<br><br>" + errorThrown);
+    });
+}
+
+
+
+SetTimeoutRecursive(GetAllRatpMAJ, 60 ); // Rafraichissement toutes les 1 min
+    
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  	"short_name": "Domoticz",
+  	"name": "Domoticz Dashboard",
+  	"icons": [
+    {
+      "src": "/images/iphone-icon.png",
+      "sizes": "57x57",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "196x196",
+      "type": "image/png"
+    }
+  ],
+	"display": "standalone"
+}
