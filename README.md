@@ -1,7 +1,7 @@
-# frontend-home-automation
+# smart-home-frontend
 
 ## Description
-* Provide a front end dashboard for home automation, based on:
+* Provide a front end dashboard for a smart home, based on:
   * Domoticz server
   * jdigiclock
   * Meteofrance pluie à 1 heure
