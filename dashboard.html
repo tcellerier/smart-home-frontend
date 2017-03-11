@@ -18,7 +18,7 @@
     <!-- Bootstrap -->
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="dashboard/jdigiclock/jquery.jdigiclock.css" />
+    <link rel="stylesheet" type="text/css" href="dashboard/jdigiclock/jquery.jdigiclock.css">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-switch.min.css" rel="stylesheet">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-select.min.css" rel="stylesheet">
 
@@ -478,19 +478,19 @@
 
           <table style="opacity: 0.8; margin: 0px auto; border-collapse: separate; border-spacing: 12px 4px;">
             <tr style="height: 30px;">
-              <td style="background: #ffffff; width: 30x;cursor: pointer; " onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneBlanc100 + '&switchcmd=On', 'Lumière chambre blanc 100%');">&nbsp;</td>
-              <td style="background: lightgrey; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneBlanc10 + '&switchcmd=On', 'Lumière chambre blanc 10%');">&nbsp;</td>
-              <td style="background: grey; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneBlanc3 + '&switchcmd=On', 'Lumière chambre blanc 3%');">&nbsp;</td>
-              <td style="background: #BE0000; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneRouge + '&switchcmd=On', 'Lumière chambre rouge');">&nbsp;</td>
-              <td style="background: #E53B97; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneRose + '&switchcmd=On', 'Lumière chambre rose');">&nbsp;</td>
-              <td rowspan="2" style="opacity: 1; width: 64px; cursor: pointer; background-image: url('dashboard/images/lumiere-cycle.png'); background-size: contain; background-repeat:no-repeat;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDLampeChambreColorChange + '&switchcmd=On', 'Lumière chambre - Rotation des couleurs pendant 1h');"></td>
+              <td style="background: #ffffff; width: 30x;cursor: pointer; " onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 100, 2); DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 100%');">&nbsp;</td>
+              <td style="background: lightgrey; width: 30px; cursor: pointer;" onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 10, 2);DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 10%');">&nbsp;</td>
+              <td style="background: grey; width: 30px; cursor: pointer;" onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 3, 2);DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 3%');">&nbsp;</td>
+              <td style="background: #BE0000; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeRouge + '&switchcmd=On', 'Lumière chambre rouge');">&nbsp;</td>
+              <td style="background: #E53B97; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeRose + '&switchcmd=On', 'Lumière chambre rose');">&nbsp;</td>
+              <td rowspan="2" style="opacity: 1; width: 64px; cursor: pointer; background-image: url('dashboard/images/lumiere-cycle.png'); background-size: contain; background-repeat:no-repeat;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDLampeChambreColorChange + '&switchcmd=Toggle', 'Lumière chambre - Rotation des couleurs pendant 1h');"></td>
             </tr>
             <tr style="height: 30px;">
-              <td style="background: BlueViolet; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneViolet + '&switchcmd=On', 'Lumière chambre violet');">&nbsp;</td>
-              <td style="background: blue; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneBleu + '&switchcmd=On', 'Lumière chambre bleu');">&nbsp;</td>
-              <td style="background: cyan; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneCyan + '&switchcmd=On', 'Lumière chambre cyan');">&nbsp;</td>
-              <td style="background: LawnGreen; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneVert + '&switchcmd=On', 'Lumière chambre vert');">&nbsp;</td>
-              <td style="background: orange; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchscene&idx=' + vDomoticsSceneOrange + '&switchcmd=On', 'Lumière chambre orange');">&nbsp;</td>
+              <td style="background: BlueViolet; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeViolet + '&switchcmd=On', 'Lumière chambre violet');">&nbsp;</td>
+              <td style="background: blue; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBleu + '&switchcmd=On', 'Lumière chambre bleu');">&nbsp;</td>
+              <td style="background: cyan; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeCyan + '&switchcmd=On', 'Lumière chambre cyan');">&nbsp;</td>
+              <td style="background: LawnGreen; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeVert + '&switchcmd=On', 'Lumière chambre vert');">&nbsp;</td>
+              <td style="background: orange; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeJaune + '&switchcmd=On', 'Lumière chambre orange');">&nbsp;</td>
             </tr>
           </table>
 
