@@ -41,18 +41,18 @@ vDomoticzTelecommandeRose = 163; // Virtual Device
 
 
 // Noms des variables domoticz
-vDomoticzVar_Mode_Maison = "Var_Mode_Maison";
-vDomoticzVar_Mode_Volets = "Var_Mode_Volets";
 vDomoticzVar_Chauffage_sdb_Consigne = "Var_Chauffage_sdb_Consigne";
 vDomoticzVar_Chauffage_salon_Consigne = "Var_Chauffage_salon_Consigne";
 vDomoticzVar_Chauffage_chambre_Consigne = "Var_Chauffage_chambre_Consigne";
 vDomoticzVar_Alarmclock = "Var_Alarmclock";
 vDomoticzScript_Presence_Maison = "Script_Presence_Maison";
 vDomoticzScript_Lamp_brightness = "Script_Lamp_brightness"
+vDomoticzScript_Mode_Maison = "Script_Mode_Maison";
+vDomoticzScript_Mode_Volets = "Script_Mode_Volets";
 
 
 // Proxy Google App
-proxyGoogleCrossOrigin = "https://script.google.com/macros/XXXXXXXX";
+proxyGoogleCrossOrigin = "https://script.google.com/macros/s/XXXXX";
 
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
@@ -593,7 +593,7 @@ function DomoticzGetUpdatedVariables() {
             // On parcourt le tableau de variable
             $.each(data.result, function( Index, Variable ) {
 
-                if (Variable.Name == vDomoticzVar_Mode_Maison) {
+                if (Variable.Name == vDomoticzScript_Mode_Maison) {
                     if(Variable.Value == "auto") {
                         $( "#modemaisonauto" ).attr('class', 'btn btn-success btn-lg');
                         $( "#modemaisonmanuel" ).attr('class', 'btn btn-default btn-lg');
@@ -610,7 +610,7 @@ function DomoticzGetUpdatedVariables() {
                         $( "#modemaisonabsent" ).attr('class', 'btn btn-danger btn-lg');
                     }
                 }
-                else if (Variable.Name == vDomoticzVar_Mode_Volets) {
+                else if (Variable.Name == vDomoticzScript_Mode_Volets) {
                     if(Variable.Value == "auto") {
                         $( "#modevoletsauto" ).attr('class', 'btn btn-success btn-lg');
                         $( "#modevoletsmanuel" ).attr('class', 'btn btn-default btn-lg');
