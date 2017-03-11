@@ -28,19 +28,17 @@ vDomoticzIDPrise = 6;
 vDomoticzIDReveil = 52;
 vDomoticzIDPowerOffPrise2h = 35;
 vDomoticzIDLampeChambreColorChange = 36;
+vDomoticzIDLampe = 66;
 
-// ID des scenes Domoticz
-vDomoticsSceneBlanc100 = 5;
-vDomoticsSceneBlanc10 = 6;
-vDomoticsSceneBlanc3 = 14;
-vDomoticsSceneRouge = 9;
-vDomoticsSceneRose = 7;
-vDomoticsSceneViolet = 8;
-vDomoticsSceneBleu = 4;
-vDomoticsSceneCyan = 13;
-vDomoticsSceneVert = 12;
-vDomoticsSceneJaune = 11;
-vDomoticsSceneOrange = 10;
+vDomoticzTelecommandeBlanc = 147;
+vDomoticzTelecommandeRouge = 148;
+vDomoticzTelecommandeVert = 144;
+vDomoticzTelecommandeBleu = 145;
+vDomoticzTelecommandeJaune = 149;
+vDomoticzTelecommandeCyan = 150;
+vDomoticzTelecommandeViolet = 151;
+vDomoticzTelecommandeRose = 163; // Virtual Device
+
 
 // Noms des variables domoticz
 vDomoticzVar_Mode_Maison = "Var_Mode_Maison";
@@ -50,13 +48,17 @@ vDomoticzVar_Chauffage_salon_Consigne = "Var_Chauffage_salon_Consigne";
 vDomoticzVar_Chauffage_chambre_Consigne = "Var_Chauffage_chambre_Consigne";
 vDomoticzVar_Alarmclock = "Var_Alarmclock";
 vDomoticzScript_Presence_Maison = "Script_Presence_Maison";
+vDomoticzScript_Lamp_brightness = "Script_Lamp_brightness"
 
+
+// Proxy Google App
+proxyGoogleCrossOrigin = "https://script.google.com/macros/XXXXXXXX";
 
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
 
 // Module Vélib
-VelibAPIKey = "3496355ea83da762fa3cae313a27882b5b062bd7"; // Clef d'identification à l'API
+VelibAPIKey = "XXXXX"; // Clef d'identification à l'API
 VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
 
 // Module AirParif (parse page html)
@@ -117,6 +119,39 @@ function APIConnectionError(msgError) {
         $.notify(msgError, "error");
         OpenOverlayPage("/");
     }
+}
+
+
+/* Fonction de mise à jour des variables Domoticz */
+function UpdateDomoticzVariable(Name, Value, Type, msgInfo, msgError) {
+
+/* Types variables :
+    0 = Integer, e.g. -1, 1, 0, 2, 10 
+    1 = Float, e.g. -1.1, 1.2, 3.1
+    2 = String
+    3 = Date in format DD/MM/YYYY
+    4 = Time in 24 hr format HH:MM
+    5 = DateTime (but the format is not checked) */
+
+    $.ajax({
+        url: "/json.htm?type=command&param=updateuservariable&vname=" + Name + "&vtype=" + Type + "&vvalue=" + Value,
+        async: true,
+        dataType: 'json',
+        success: function (data, textStatus, jqXHR) {
+            
+            if( data.status == "OK") { // Code retour de l'API Domoticz
+                if (typeof msgInfo !== 'undefined') $.notify(msgInfo);
+                DomoticzGetUpdatedVariables(); // On met à jour les variables de l'interface
+            }
+            else {
+                if (typeof msgError !== 'undefined') $.notify(msgError, "error");
+                DomoticzGetUpdatedVariables(); 
+            } 
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            if (typeof msgError !== 'undefined') $.notify(msgError, "error");
+        }
+    });
 }
 
 
@@ -286,13 +321,19 @@ function DomoticzGetUpdatedDevices() {
                     $( "#humiditesalon" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempsalonimg", "#tempsalon");
                     SetCouleurHumidite(Device.Humidity, "#humiditesalon");
-
-                    $( "#timetempsalon" ).text( Device.LastUpdate.substring(11,16) ); 
                     var DateTempSalon = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
                     var TimeNow = new Date(); 
-                    var HourDiff = (TimeNow.getTime() - DateTempSalon.getTime()) / (3600*1000);
-                    if( HourDiff < 1)
+                    var MinDiff = (TimeNow.getTime() - DateTempSalon.getTime()) / (60*1000);
+
+                    if (MinDiff < 60 * 24) // en heures
+                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(11,16) ); 
+                    else
+                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); 
+
+                    if( MinDiff < 10)
                         $( "#timetempsalon" ).css( "color", "grey" );
+                    else if (MinDiff < 60)
+                        $( "#timetempsalon" ).css( "color", "orange" );
                     else
                         $( "#timetempsalon" ).css( "color", "red" );
                 }
@@ -301,13 +342,19 @@ function DomoticzGetUpdatedDevices() {
                     $( "#humiditechambre" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempchambreimg", "#tempchambre");
                     SetCouleurHumidite(Device.Humidity, "#humiditechambre");
-
-                    $( "#timetempchambre" ).text( Device.LastUpdate.substring(11,16) );        
                     var DateTempChambre = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
                     var TimeNow = new Date(); 
-                    var HourDiff = (TimeNow.getTime() - DateTempChambre.getTime()) / (3600*1000);
-                    if( HourDiff < 1)
+                    var MinDiff = (TimeNow.getTime() - DateTempChambre.getTime()) / (60*1000);
+
+                    if(MinDiff < 60 * 24) // en heures
+                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(11,16) );        
+                    else
+                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) );        
+
+                    if( MinDiff < 10)
                         $( "#timetempchambre" ).css( "color", "grey" );
+                    else if (MinDiff < 60)
+                        $( "#timetempchambre" ).css( "color", "orange" );
                     else
                         $( "#timetempchambre" ).css( "color", "red" );
                 }
@@ -316,13 +363,19 @@ function DomoticzGetUpdatedDevices() {
                     $( "#humiditesdb" ).text( Device.Humidity  + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempsdbimg", "#tempsdb");
                     SetCouleurHumidite(Device.Humidity, "#humiditesdb");
-
-                    $( "#timetempsdb" ).text( Device.LastUpdate.substring(11,16) ); 
                     var DateTempSdb = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
                     var TimeNow = new Date(); 
-                    var HourDiff = (TimeNow.getTime() - DateTempSdb.getTime()) / (3600*1000);
-                    if( HourDiff < 1)
+                    var MinDiff = (TimeNow.getTime() - DateTempSdb.getTime()) / (60*1000);
+
+                    if (MinDiff < 60 * 24) // en heures
+                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(11,16) ); 
+                    else
+                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); 
+
+                    if( MinDiff < 10)
                         $( "#timetempsdb" ).css( "color", "grey" );
+                    else if (MinDiff < 60)
+                        $( "#timetempsdb" ).css( "color", "orange" );
                     else
                         $( "#timetempsdb" ).css( "color", "red" ); 
                 }
@@ -331,13 +384,19 @@ function DomoticzGetUpdatedDevices() {
                     $( "#humiditedehors" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempdehorsimg", "#tempdehors");
                     SetCouleurHumidite(Device.Humidity, "#humiditedehors");
-
-                    $( "#timetempdehors" ).text( Device.LastUpdate.substring(11,16) ); 
                     var DateTempDehors = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
                     var TimeNow = new Date(); 
-                    var HourDiff = (TimeNow.getTime() - DateTempDehors.getTime()) / (3600*1000);
-                    if( HourDiff < 1)
+                    var MinDiff = (TimeNow.getTime() - DateTempDehors.getTime()) / (60*1000);
+
+                    if (MinDiff < 60 * 24) // en heures
+                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(11,16) );
+                    else
+                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) );
+
+                    if( MinDiff < 10)
                         $( "#timetempdehors" ).css( "color", "grey" );
+                    else if (MinDiff < 60)
+                        $( "#timetempdehors" ).css( "color", "orange" );
                     else
                         $( "#timetempdehors" ).css( "color", "red" );
                 }
@@ -837,7 +896,7 @@ function GetAirParifMAJ() {
     $.ajaxSetup({
         crossOrigin: true,
         // Code Google accessible en anonyme sur compte tcellerier@gmail.com, 20000 requêtes max / jour , 100 MB max / jour
-        proxy: "https://script.google.com/macros/s/AKfycbw4oDw8QJj8w72Ibj6GOTnlyBVNTJjiCWJ-UVUMlqLy7u2_b9o/exec"
+        proxy: proxyGoogleCrossOrigin
     });
 
     $.getJSON( AirParifURL, function( data, textStatus, jqXHR ) { 
@@ -900,7 +959,7 @@ function GetMeteoFranceUneHeureMAJ() {
     $.ajaxSetup({
         crossOrigin: true,
         // Code Google accessible en anonyme sur compte tcellerier@gmail.com, 20000 requêtes max / jour , 100 MB max / jour
-        proxy: "https://script.google.com/macros/s/AKfycbw4oDw8QJj8w72Ibj6GOTnlyBVNTJjiCWJ-UVUMlqLy7u2_b9o/exec"
+        proxy: proxyGoogleCrossOrigin
     });
 
     $.getJSON( PluieUneHeureURL , function( data, textStatus, jqXHR ) { 
@@ -1092,7 +1151,7 @@ $(document).ready(function(){
     
 
     SetTimeoutRecursive(GetAirParifMAJ, 2700 );  // 45 Min, besoin d'un proxy pour le cross origin
-    SetTimeoutRecursive(GetMeteoFranceUneHeureMAJ, 900 ); // 15 Min , besoin d'un proxy pour le cross origin
+    SetTimeoutRecursive(GetMeteoFranceUneHeureMAJ, 300 ); // 5 Min , besoin d'un proxy pour le cross origin
 
 });
 
