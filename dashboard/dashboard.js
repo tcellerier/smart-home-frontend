@@ -52,13 +52,13 @@ vDomoticzScript_Mode_Volets = "Script_Mode_Volets";
 
 
 // Proxy Google App
-proxyGoogleCrossOrigin = "https://script.google.com/macros/s/XXXXX";
+proxyGoogleCrossOrigin = "https://script.google.com/macros/s/AKfycbzLINNv-2CJGrhEr65KByN6-vq9HVS0cFeLDD9hlCCvkhNmwGQ/exec";
 
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
 
 // Module Vélib
-VelibAPIKey = "XXXXX"; // Clef d'identification à l'API
+VelibAPIKey = "76183c111eca298b5200b90052465b6af0d091e2"; // Clef d'identification à l'API
 VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
 
 // Module AirParif (parse page html)
@@ -651,7 +651,7 @@ function DomoticzGetUpdatedVariables() {
                 else if (Variable.Name == vDomoticzScript_Presence_Maison) {
                     
                     // Différences entre la mise à jour de la variable et maintenant
-                    var delay_minutes = 20; 
+                    var delay_minutes = 12;  // A mettre également à jour dans script_time_presence_ping.lua
                     var TimeVariableParts = Variable.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
                     var TimeVariable = new Date(parseInt(TimeVariableParts[1]), parseInt(TimeVariableParts[2]) - 1, parseInt(TimeVariableParts[3]), parseInt(TimeVariableParts[4]), parseInt(TimeVariableParts[5]), parseInt(TimeVariableParts[6]));
                     var TimeNow = new Date(); 
