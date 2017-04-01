@@ -13,7 +13,8 @@
 ![alt tag](screenshot.png)
 
 
-## Utilisation
+## Utilisation Domoticz
+
 ### Détection présence
 
 ### Changement pile module RF
