@@ -17,4 +17,7 @@
 ### Détection présence
 
 ### Changement pile module RF
-
+Les modules RF changent d'identifiant unique lorsque leur batterie est remplacée.
+Pour conserver l'historique des données, ajouter le nouveau module dans Domoticz en lui donnant par exemple le nom 'Nouveau module'. 
+Puis appuyer sur le bouton Edit de l'ancien module, sélectionner Replace et choisir le nouveau moudule ('nouveau module').
+On peut maintenant renommer le nouveau momdule par son nom original 'module'
