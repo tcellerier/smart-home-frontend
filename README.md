@@ -43,4 +43,5 @@ Il existe deux modes de détection de présence à paramétrer dans le script LU
 Les modules RF changent d'identifiant unique lorsque leur batterie est remplacée.
 Pour conserver l'historique des données du capteur, ajouter le nouveau module dans Domoticz en lui donnant par exemple le nom 'Nouveau module'. 
 Puis appuyer sur le bouton Edit de l'ancien module, sélectionner Replace et choisir le nouveau moudule ('nouveau module').
-On peut maintenant renommer le nouveau momdule par son nom original 'module'
+On peut maintenant renommer le nouveau momdule par son nom original 'module'.
+Enfin, modifier l'identifiant du module dans le script dashboard/dashboard.js (vDomoticzIDTempXXXX)
