@@ -10,9 +10,9 @@ vDomoticzIDVoletsSalon = 45;
 vDomoticzIDVoletsChambre = 46;
 vDomoticzIDVoletsSdb = 48;
 vDomoticzIDTempSalon = 107;
-vDomoticzIDTempChambre = 70;
+vDomoticzIDTempChambre = 381;
 vDomoticzIDTempSdb = 108;
-vDomoticzIDTempDehors = 122;
+vDomoticzIDTempDehors = 458;
 vDomoticzIDChauffageSalonAutoPresence = 105;
 vDomoticzIDChauffageSalonConsigne = 86;
 vDomoticzIDChauffageSalonOnOff = 23;
@@ -49,16 +49,16 @@ vDomoticzScript_Presence_Maison = "Script_Presence_Maison";
 vDomoticzScript_Lamp_brightness = "Script_Lamp_brightness"
 vDomoticzScript_Mode_Maison = "Script_Mode_Maison";
 vDomoticzScript_Mode_Volets = "Script_Mode_Volets";
-
+vDomoticzScript_Mode_VoletsTardifs = "Script_Mode_VoletsTardifs";
 
 // Proxy Google App
-proxyGoogleCrossOrigin = "https://script.google.com/macros/s/XXXXXXX";
+proxyGoogleCrossOrigin = "https://script.google.com/macros/XXXXXX";
 
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
 
 // Module Vélib
-VelibAPIKey = "XXXXXXX"; // Clef d'identification à l'API
+VelibAPIKey = "XXXX"; // Clef d'identification à l'API
 VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
 
 // Module AirParif (parse page html)
@@ -68,6 +68,10 @@ AirParifURL = "http://www.airparif.asso.fr";
 RatpURL = "https://api-ratp.pierre-grimaud.fr/v2/traffic/metros/";
 RatpLigne1 = "2";
 RatpLigne2 = "12";
+
+// Delay en minutes entre le passage d'un état de détection à un autre (ex : de présent à absent)
+// Valeurs conseillées : 20 en modePresence 3, 15 en modePrésence 2
+var delay_minutes = 15;  // A mettre également à jour dans script_time_presence_ping.lua
 
 
 /******************************************/
@@ -79,6 +83,13 @@ RatpLigne2 = "12";
 vDomoticzLastUpdate = ""; 
 vDomoticzAPIError = 0;
 vDomoticzInitSwitchJS = 0;
+TimeNowServer = new Date();  // Initialisation de l'heure serveur sur l'heure du client
+
+/* Fonction sleep */
+function sleep(milliseconds){
+    var waitUntil = new Date().getTime() + milliseconds;
+    while(new Date().getTime() < waitUntil) true;
+}
 
 /* Fonction générique d'appel à l'API domoticz */
 function DomoticzCallAPI(JSONParam, msgInfo, msgError) {
@@ -277,6 +288,8 @@ function DomoticzGetUpdatedDevices() {
         // Si l'API renvoit OK
         if( typeof data.status != "undefined" && data.status == "OK" ) {
 
+            TimeNowServer = new Date(data.ServerTime.substring(0,4), data.ServerTime.substring(5,7) - 1, data.ServerTime.substring(8,10), data.ServerTime.substring(11,13), data.ServerTime.substring(14,16), data.ServerTime.substring(17,20) ); 
+
             // On parcourt le tableau de devices
             $.each(data.result, function( Index, Device ) {
 
@@ -321,84 +334,59 @@ function DomoticzGetUpdatedDevices() {
                     $( "#humiditesalon" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempsalonimg", "#tempsalon");
                     SetCouleurHumidite(Device.Humidity, "#humiditesalon");
-                    var DateTempSalon = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
-                    var TimeNow = new Date(); 
-                    var MinDiff = (TimeNow.getTime() - DateTempSalon.getTime()) / (60*1000);
+                    DateTempSalon = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
 
-                    if (MinDiff < 60 * 24) // en heures
-                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(11,16) ); 
-                    else
-                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); 
+                    var MinDiffTempSalon = (TimeNowServer.getTime() - DateTempSalon.getTime()) / (60*1000);
 
-                    if( MinDiff < 10)
-                        $( "#timetempsalon" ).css( "color", "grey" );
-                    else if (MinDiff < 60)
-                        $( "#timetempsalon" ).css( "color", "orange" );
+                    if (MinDiffTempSalon < 60 * 24) // en heures
+                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(11,16) );  // Heure mise à jour
                     else
-                        $( "#timetempsalon" ).css( "color", "red" );
+                        $( "#timetempsalon" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); // Date mise à jour
                 }
+
                 else if (Device.idx == vDomoticzIDTempChambre) {
                     $( "#tempchambre" ).text( Device.Temp.toFixed(1) ); 
                     $( "#humiditechambre" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempchambreimg", "#tempchambre");
                     SetCouleurHumidite(Device.Humidity, "#humiditechambre");
-                    var DateTempChambre = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
-                    var TimeNow = new Date(); 
-                    var MinDiff = (TimeNow.getTime() - DateTempChambre.getTime()) / (60*1000);
+                    DateTempChambre = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
+    
+                    var MinDiffTempChambre = (TimeNowServer.getTime() - DateTempChambre.getTime()) / (60*1000);
 
-                    if(MinDiff < 60 * 24) // en heures
-                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(11,16) );        
+                    if(MinDiffTempChambre < 60 * 24) // en heures
+                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(11,16) );   // Heure mise à jour
                     else
-                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) );        
-
-                    if( MinDiff < 10)
-                        $( "#timetempchambre" ).css( "color", "grey" );
-                    else if (MinDiff < 60)
-                        $( "#timetempchambre" ).css( "color", "orange" );
-                    else
-                        $( "#timetempchambre" ).css( "color", "red" );
+                        $( "#timetempchambre" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); // Date mise à jour 
                 }
+
                 else if (Device.idx == vDomoticzIDTempSdb) {
                     $( "#tempsdb" ).text( Device.Temp.toFixed(1) ); 
                     $( "#humiditesdb" ).text( Device.Humidity  + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempsdbimg", "#tempsdb");
                     SetCouleurHumidite(Device.Humidity, "#humiditesdb");
-                    var DateTempSdb = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
-                    var TimeNow = new Date(); 
-                    var MinDiff = (TimeNow.getTime() - DateTempSdb.getTime()) / (60*1000);
+                    DateTempSdb = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
+                
+                    var MinDiffTempsSdb = (TimeNowServer.getTime() - DateTempSdb.getTime()) / (60*1000);
 
-                    if (MinDiff < 60 * 24) // en heures
-                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(11,16) ); 
+                    if (MinDiffTempsSdb < 60 * 24) // en heures
+                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(11,16) ); // Heure mise à jour
                     else
-                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); 
-
-                    if( MinDiff < 10)
-                        $( "#timetempsdb" ).css( "color", "grey" );
-                    else if (MinDiff < 60)
-                        $( "#timetempsdb" ).css( "color", "orange" );
-                    else
-                        $( "#timetempsdb" ).css( "color", "red" ); 
+                        $( "#timetempsdb" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); // Date mise à jour 
                 }
+
                 else if (Device.idx == vDomoticzIDTempDehors) {
                     $( "#tempdehors" ).text( Device.Temp.toFixed(1) ); 
                     $( "#humiditedehors" ).text( Device.Humidity + ' %' ); 
                     SetCouleurTemperature(Device.Temp, "#tempdehorsimg", "#tempdehors");
                     SetCouleurHumidite(Device.Humidity, "#humiditedehors");
-                    var DateTempDehors = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
-                    var TimeNow = new Date(); 
-                    var MinDiff = (TimeNow.getTime() - DateTempDehors.getTime()) / (60*1000);
+                    DateTempDehors = new Date(Device.LastUpdate.substring(0,4), Device.LastUpdate.substring(5,7) - 1, Device.LastUpdate.substring(8,10), Device.LastUpdate.substring(11,13), Device.LastUpdate.substring(14,16));
+                    
+                    var MinDiffTempsDehors = (TimeNowServer.getTime() - DateTempDehors.getTime()) / (60*1000);
 
-                    if (MinDiff < 60 * 24) // en heures
-                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(11,16) );
+                    if (MinDiffTempsDehors < 60 * 24) // en heures
+                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(11,16) );  // Heure mise à jour
                     else
-                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) );
-
-                    if( MinDiff < 10)
-                        $( "#timetempdehors" ).css( "color", "grey" );
-                    else if (MinDiff < 60)
-                        $( "#timetempdehors" ).css( "color", "orange" );
-                    else
-                        $( "#timetempdehors" ).css( "color", "red" );
+                        $( "#timetempdehors" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); // Date mise à jour 
                 }
 
                 else if (Device.idx == vDomoticzIDChauffageSalonAutoPresence) {
@@ -408,7 +396,6 @@ function DomoticzGetUpdatedDevices() {
                     else {
                         $( "#chauffagesalonautopresence" ).attr('class', 'btn btn-default btn-lg');
                     }
-                    
                 }
                 else if (Device.idx == vDomoticzIDChauffageSalonConsigne) {
                     if(Device.Status == "On") {
@@ -550,6 +537,41 @@ function DomoticzGetUpdatedDevices() {
 
             });
 
+
+            // Mise à jour de la couleur des heures de rafraichissement des températures à chaque chargement des données
+            var MinDiffTempSalon = (TimeNowServer.getTime() - DateTempSalon.getTime()) / (60*1000);
+            if( MinDiffTempSalon < 10) // 10 min
+                $( "#timetempsalon" ).css( "color", "grey" );
+            else if (MinDiffTempSalon < 60)
+                $( "#timetempsalon" ).css( "color", "orange" );
+            else
+                $( "#timetempsalon" ).css( "color", "red" );
+
+            var MinDiffTempChambre = (TimeNowServer.getTime() - DateTempChambre.getTime()) / (60*1000);
+            if( MinDiffTempChambre < 10) // 10 min
+                $( "#timetempchambre" ).css( "color", "grey" );
+            else if (MinDiffTempChambre < 60)
+                $( "#timetempchambre" ).css( "color", "orange" );
+            else
+                $( "#timetempchambre" ).css( "color", "red" );
+
+            var MinDiffTempsSdb = (TimeNowServer.getTime() - DateTempSdb.getTime()) / (60*1000);
+            if( MinDiffTempsSdb < 10) // 10 min
+                $( "#timetempsdb" ).css( "color", "grey" );
+            else if (MinDiffTempsSdb < 60)
+                $( "#timetempsdb" ).css( "color", "orange" );
+            else
+                $( "#timetempsdb" ).css( "color", "red" ); 
+
+            var MinDiffTempsDehors = (TimeNowServer.getTime() - DateTempDehors.getTime()) / (60*1000);
+            if( MinDiffTempsDehors < 10) // 10 min
+                $( "#timetempdehors" ).css( "color", "grey" );
+            else if (MinDiffTempsDehors < 60)
+                $( "#timetempdehors" ).css( "color", "orange" );
+            else
+                $( "#timetempdehors" ).css( "color", "red" );
+
+
             // Variable globale de la datetime du call API pour ne récupérer que les derniers changements
             vDomoticzLastUpdate = data.ActTime; 
 
@@ -588,7 +610,7 @@ function DomoticzGetUpdatedVariables() {
     $.getJSON("/json.htm?type=command&param=getuservariables", function( data, textStatus, jqXHR ) {
 
         // Si l'API renvoit OK
-        if( typeof data.status != "undefined" && data.status == "OK" ) {
+        if( typeof data.status != "undefined" && data.status == "OK" ) {                
 
             // On parcourt le tableau de variable
             $.each(data.result, function( Index, Variable ) {
@@ -611,23 +633,39 @@ function DomoticzGetUpdatedVariables() {
                     }
                 }
                 else if (Variable.Name == vDomoticzScript_Mode_Volets) {
+                    vModeVolets = Variable.Value;
                     if(Variable.Value == "auto") {
-                        $( "#modevoletsauto" ).attr('class', 'btn btn-success btn-lg');
-                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-default btn-lg');
-                        $( "#modevoletscanicule" ).attr('class', 'btn btn-default btn-lg');
+                        if (typeof vDomoticzVoletsTardifs != 'undefined' && vDomoticzVoletsTardifs == 'on')
+                            $( "#modevoletsauto" ).attr('class', 'btn btn-darkgreen btn-lg btn-medpadding');
+                        else
+                            $( "#modevoletsauto" ).attr('class', 'btn btn-success btn-lg btn-medpadding');
+                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
+                        $( "#modevoletscanicule" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
                     }
                     else if(Variable.Value == "manuel") {
-                        $( "#modevoletsauto" ).attr('class', 'btn btn-default btn-lg');
-                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-warning btn-lg');
-                        $( "#modevoletscanicule" ).attr('class', 'btn btn-default btn-lg');
+                        $( "#modevoletsauto" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
+                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-warning btn-lg btn-medpadding');
+                        $( "#modevoletscanicule" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
                     }
                     else if(Variable.Value == "canicule") {
-                        $( "#modevoletsauto" ).attr('class', 'btn btn-default btn-lg');
-                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-default btn-lg');
-                        $( "#modevoletscanicule" ).attr('class', 'btn btn-success btn-lg');
+                        $( "#modevoletsauto" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
+                        $( "#modevoletsmanuel" ).attr('class', 'btn btn-default btn-lg btn-medpadding');
+                        $( "#modevoletscanicule" ).attr('class', 'btn btn-success btn-lg btn-medpadding');
                     }
                 }
-
+                else if (Variable.Name == vDomoticzScript_Mode_VoletsTardifs) {
+                    vDomoticzVoletsTardifs = Variable.Value;
+                    if(Variable.Value == "on") {
+                        $( "#modevoletsauto" ).text('Auto tardif');
+                        if(typeof vModeVolets != 'undefined' && vModeVolets == "auto")
+                            $( "#modevoletsauto" ).attr('class', 'btn btn-darkgreen btn-lg btn-medpadding');
+                    }
+                    else if(Variable.Value == "off") {
+                        $( "#modevoletsauto" ).text('Auto');
+                        if(typeof vModeVolets != 'undefined' && vModeVolets == "auto")
+                            $( "#modevoletsauto" ).attr('class', 'btn btn-success btn-lg btn-medpadding');
+                    }
+                }
                 else if (Variable.Name == vDomoticzVar_Chauffage_salon_Consigne) {
                      vDomocitzConsigneSalon = Variable.Value;
                      $( "#consignesalon" ).text( vDomocitzConsigneSalon ); 
@@ -651,11 +689,9 @@ function DomoticzGetUpdatedVariables() {
                 else if (Variable.Name == vDomoticzScript_Presence_Maison) {
                     
                     // Différences entre la mise à jour de la variable et maintenant
-                    var delay_minutes = 12;  // A mettre également à jour dans script_time_presence_ping.lua
                     var TimeVariableParts = Variable.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
                     var TimeVariable = new Date(parseInt(TimeVariableParts[1]), parseInt(TimeVariableParts[2]) - 1, parseInt(TimeVariableParts[3]), parseInt(TimeVariableParts[4]), parseInt(TimeVariableParts[5]), parseInt(TimeVariableParts[6]));
-                    var TimeNow = new Date(); 
-                    var PourcentDiff = Math.min(Math.max(Math.floor(100 - Math.floor( (TimeNow.getTime() - TimeVariable.getTime()) / ( 60 * 1000)) * 100 / delay_minutes), 0), 100); // Pourcentage avant la fin
+                    var PourcentDiff = Math.min(Math.max(Math.floor(100 - Math.floor( (TimeNowServer.getTime() - TimeVariable.getTime()) / ( 60 * 1000)) * 100 / delay_minutes), 0), 100); // Pourcentage avant la fin
 
                     if(Variable.Value == "1") {
                         //$( "#presencetexte" ).text( Variable.LastUpdate ); 
@@ -689,8 +725,8 @@ function DomoticzGetUpdatedVariables() {
 /* Fonction d'update des devices et des variables */
 function DomoticzGetUpdatedAll() {
 
-    DomoticzGetUpdatedVariables();
     DomoticzGetUpdatedDevices();
+    DomoticzGetUpdatedVariables();
   
 }
 
