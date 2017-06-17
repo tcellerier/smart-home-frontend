@@ -65,7 +65,7 @@ VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
 AirParifURL = "http://www.airparif.asso.fr";
 
 // Module RATP, API retro engineered par Pierre Grimaud
-RatpURL = "https://api-ratp.pierre-grimaud.fr/v2/traffic/metros/";
+RatpURL = "https://api-ratp.pierre-grimaud.fr/v3/traffic/metros/";
 RatpLigne1 = "2";
 RatpLigne2 = "12";
 
@@ -890,27 +890,27 @@ function GetRatpMAJ(Ligne, TextID) {
 
     $.getJSON( RatpURL + Ligne , function( data, textStatus, jqXHR ) {
 
-        if(typeof data.response != "undefined") {
+        if(typeof data.result != "undefined") {
 
             $( TextID ).html('<img src="dashboard/images/ratp/ratp_metro' + Ligne + '.png" alt="' + Ligne + '">&nbsp;');
 
-            if ( data.response.slug == "normal" ) {
+            if ( data.result.slug == "normal" ) {
                 $( TextID ).css("color", "white");
             }
-            else if (data.response.slug == "critique" ) {
+            else if (data.result.slug == "critique" ) {
                 $( TextID ).css("color", "red"); 
                 $( TextID ).append( '<img alt="critique" src="dashboard/images/ratp/ratp_critique.png">&nbsp;' );
             }
-            else if (data.response.slug == "alerte" ) {
+            else if (data.result.slug == "alerte" ) {
                 $( TextID ).css("color", "orange"); 
                 $( TextID ).append( '<img alt="alerte" src="dashboard/images/ratp/ratp_alerte.png">&nbsp;' );
             }
-            else if (data.response.slug == "normal_trav") {
+            else if (data.result.slug == "normal_trav") {
                 $( TextID ).css("color", "white");
                 $( TextID ).append( '<img alt="critique" src="dashboard/images/ratp/ratp_travaux.png">&nbsp;' );
             }
 
-            $( TextID ).append( data.response.message );
+            $( TextID ).append( data.result.message );
         }
     })
         
