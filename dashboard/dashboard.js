@@ -731,60 +731,113 @@ function DomoticzGetUpdatedAll() {
 }
 
 
+/* Fonction d'interpolation des couleurs RGB, t entre 0 et 1 */
+function interpolationRGB(HexCodeA, HexCodeB, t)
+{
+
+    // Capping de t entre 0 et 1
+    if ( t < 0) {
+        t = 0;
+    }
+    else if ( t > 1) {
+        t = 1;
+    }
+
+    var bigintA = parseInt(HexCodeA.substring(1), 16);
+    var rA = (bigintA >> 16) & 255;
+    var gA = (bigintA >> 8) & 255;
+    var bA = bigintA & 255;
+
+    var bigintB = parseInt(HexCodeB.substring(1), 16);
+    var rB = (bigintB >> 16) & 255;
+    var gB = (bigintB >> 8) & 255;
+    var bB = bigintB & 255;
+
+    var rC = Math.round(rA + (rB - rA) * t);
+    var gC = Math.round(gA + (gB - gA) * t);
+    var bC = Math.round(bA + (bB - bA) * t);
+
+    return "#" + ((1 << 24) + (rC << 16) + (gC << 8) + bC).toString(16).slice(1);
+}
+
 
 // Mise à jour des icônes et de la couleur de température en fonction de la température
 function SetCouleurTemperature(Temperature, PieceId, TempTxtId) {
 
+    var Temp0inf = "#6e6eff";
+    var Temp5 = "#00b0ff";
+    var Temp10 = "#00c194";
+    var Temp15 = "#4cb64c";
+    var Temp20 = "#fed066";
+    var Temp25 = "#ffb87f";
+    var Temp30 = "#FB6102";
+    var Temp35sup = "#FF1000"
+
     if(Temperature <= 0) {
         $( PieceId ).attr("src", "dashboard/images/temp-ice.png");
-        $( TempTxtId ).css("color", "#6e6eff");
+        $( TempTxtId ).css("color", Temp0inf);
     }
-    else if(Temperature < 5) { 
+    else if(Temperature <= 5) { 
         $( PieceId ).attr("src", "dashboard/images/temp-0-5.png");
-        $( TempTxtId ).css("color", "#00b0ff");
+        $( TempTxtId ).css("color", interpolationRGB(Temp0inf, Temp5, (Temperature - 0) / 5) );
     }
-    else if (Temperature < 10) { 
+    else if (Temperature <= 10) { 
         $( PieceId ).attr("src", "dashboard/images/temp-5-10.png");
-        $( TempTxtId ).css("color", "#00c194");
+        $( TempTxtId ).css("color", interpolationRGB(Temp5, Temp10, (Temperature - 5) / 5) );
     }
-    else if (Temperature < 15) { 
+    else if (Temperature <= 15) { 
         $( PieceId ).attr("src", "dashboard/images/temp-10-15.png");
-        $( TempTxtId ).css("color", "#4cb64c");
+        $( TempTxtId ).css("color", interpolationRGB(Temp10, Temp15, (Temperature - 10) / 5) );
     }
-    else if (Temperature < 20) {
+    else if (Temperature <= 20) {
         $( PieceId ).attr("src", "dashboard/images/temp-15-20.png");
-        $( TempTxtId ).css("color", "#fed066");
+        $( TempTxtId ).css("color", interpolationRGB(Temp15, Temp20, (Temperature - 15) / 5) );
     }
-    else if (Temperature < 25) {
+    else if (Temperature <= 25) {
         $( PieceId ).attr("src", "dashboard/images/temp-20-25.png");
-        $( TempTxtId ).css("color", "#ffb87f");
+        $( TempTxtId ).css("color", interpolationRGB(Temp20, Temp25, (Temperature - 20) / 5) );
     }
-    else if (Temperature < 30) {
+    else if (Temperature <= 30) {
         $( PieceId ).attr("src", "dashboard/images/temp-25-30.png");
-        $( TempTxtId ).css("color", "#FB6102");
+        $( TempTxtId ).css("color", interpolationRGB(Temp25, Temp30, (Temperature - 25) / 5) );
     }
     else {
         $( PieceId ).attr("src", "dashboard/images/temp-gt-30.png");
-        $( TempTxtId ).css("color", "#FF1000");
+        $( TempTxtId ).css("color", interpolationRGB(Temp30, Temp35sup, (Temperature - 30) / 5) ); // Max des couleurs à 35
     }
 }
 
 // Mise à jour de la couleur de l'hygromètre en fonction de l'humidité
 function SetCouleurHumidite(Humidite, HumidTxtId) {
-    if(Humidite < 35) {
+
+    Humidity35inf = "#ff884e";
+    Humidity40 = "#FFD1B9";
+    Humidity45 = "#FFFFFF";
+    Humidity55 = "#FFFFFF";
+    Humidity60 = "#93C9D8";
+    Humidity65sup = "#31b0d5";
+
+    if(Humidite <= 35) {
         $( HumidTxtId ).css("color", "#ff884e");
+        $( HumidTxtId ).css("color", Humidity35inf);
     }
-    else if (Humidite < 40) {
-        $( HumidTxtId ).css("color", "#FFD1B9");
+    else if (Humidite <= 40) {
+        $( HumidTxtId ).css("color", interpolationRGB(Humidity35inf, Humidity40, (Humidite - 35) / 5) );
+    }
+    else if (Humidite <= 45) {
+        $( HumidTxtId ).css("color", interpolationRGB(Humidity40, Humidity45, (Humidite - 40) / 5) );
+    }
+    else if (Humidite <= 55) {
+        $( HumidTxtId ).css("color", Humidity55); 
     }
     else if (Humidite <= 60) {
-        $( HumidTxtId ).css("color", "white");
+        $( HumidTxtId ).css("color", interpolationRGB(Humidity55, Humidity60, (Humidite - 55) / 5) );
     }
     else if (Humidite <= 65) {
-        $( HumidTxtId ).css("color", "#93C9D8"); 
+        $( HumidTxtId ).css("color", interpolationRGB(Humidity60, Humidity65sup, (Humidite - 60) / 5) );
     }
     else {
-        $( HumidTxtId ).css("color", "#31b0d5"); 
+        $( HumidTxtId ).css("color", Humidity65sup); 
     }
 }
 
