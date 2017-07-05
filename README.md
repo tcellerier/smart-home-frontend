@@ -45,3 +45,8 @@ Pour conserver l'historique des données du capteur, ajouter le nouveau module d
 Puis appuyer sur le bouton Edit de l'ancien module, sélectionner Replace et choisir le nouveau moudule.
 On peut maintenant renommer le nouveau module par son nom original 'module'.
 Enfin, modifier l'identifiant du module dans le script dashboard/dashboard.js (vDomoticzIDTempXXXX)
+
+
+### Changement de téléphone ou d'ordinateur (script détection présence)
+* Mettre à jour les adresses IP dans les variables Domoticz Var_IP_Computer_ping et/ou  Var_IP_Tel_ping
+* Pour les téléphones uniquement, mettre à jour les adresses MAC dans le script python presence.py
