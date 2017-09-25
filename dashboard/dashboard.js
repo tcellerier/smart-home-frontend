@@ -7,6 +7,8 @@
 
 // ID des Devices Domoticz
 vDomoticzIDVoletsSalon = 45;
+vDomoticzIDVoletsSalonG = 50;
+vDomoticzIDVoletsSalonD = 49;
 vDomoticzIDVoletsChambre = 46;
 vDomoticzIDVoletsSdb = 48;
 vDomoticzIDTempSalon = 107;
@@ -29,6 +31,7 @@ vDomoticzIDReveil = 52;
 vDomoticzIDPowerOffPrise2h = 35;
 vDomoticzIDLampeChambreColorChange = 36;
 vDomoticzIDLampe = 66;
+vDomoticzIDCamera = 999;
 
 vDomoticzTelecommandeBlanc = 147;
 vDomoticzTelecommandeRouge = 148;
@@ -41,6 +44,10 @@ vDomoticzTelecommandeRose = 163; // Virtual Device
 
 
 // Noms des variables domoticz
+vDomoticzScript_Volets_chambre = "Script_Volets_chambre";
+vDomoticzScript_Volets_salon_droit = "Script_Volets_salon_droit";
+vDomoticzScript_Volets_salon_gauche = "Script_Volets_salon_gauche";
+vDomoticzScript_Volets_sdb = "Script_Volets_sdb";
 vDomoticzVar_Chauffage_sdb_Consigne = "Var_Chauffage_sdb_Consigne";
 vDomoticzVar_Chauffage_salon_Consigne = "Var_Chauffage_salon_Consigne";
 vDomoticzVar_Chauffage_chambre_Consigne = "Var_Chauffage_chambre_Consigne";
@@ -52,13 +59,13 @@ vDomoticzScript_Mode_Volets = "Script_Mode_Volets";
 vDomoticzScript_Mode_VoletsTardifs = "Script_Mode_VoletsTardifs";
 
 // Proxy Google App
-proxyGoogleCrossOrigin = "https://script.google.com/macros/XXXXXX";
+proxyGoogleCrossOrigin = "https://script.google.com/macros/s/XXXX";
 
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
 
 // Module Vélib
-VelibAPIKey = "XXXX"; // Clef d'identification à l'API
+VelibAPIKey = "XXXXX"; // Clef d'identification à l'API. ATTENTION : si modification, modifier les autres scripts Velib (type page PHP sur Synology)
 VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
 
 // Module AirParif (parse page html)
@@ -69,10 +76,16 @@ RatpURL = "https://api-ratp.pierre-grimaud.fr/v3/traffic/metros/";
 RatpLigne1 = "2";
 RatpLigne2 = "12";
 
+// Module Calendrier Google (remplacer les &amp; par &)
+CalendarURL = "https://calendar.google.com/calendar/embed?showTitle=0&showNav=0&showDate=0&showPrint=0&showTabs=0&showCalendars=0&showTz=0&mode=AGENDA&height=213&wkst=2&bgcolor=%23333333&src=XXXX&color=%231B887A&ctz=Europe%2FParis";
+
+
 // Delay en minutes entre le passage d'un état de détection à un autre (ex : de présent à absent)
 // Valeurs conseillées : 20 en modePresence 3, 15 en modePrésence 2
 var delay_minutes = 15;  // A mettre également à jour dans script_time_presence_ping.lua
 
+// Temps de fermeture d'un volet en secondes
+vTimeVoletFermeture = 19; 
 
 /******************************************/
 /**********   Fin du paramétrage  *********/
@@ -84,6 +97,12 @@ vDomoticzLastUpdate = "";
 vDomoticzAPIError = 0;
 vDomoticzInitSwitchJS = 0;
 TimeNowServer = new Date();  // Initialisation de l'heure serveur sur l'heure du client
+// Statuts pour gérer les bouton de volets (animation + bouton commun au salon)
+vDomoticzVoletsSalonGaucheStatut = "unknown"; vDomoticzVoletsSalonGaucheLastUpdate = 0;
+vDomoticzVoletsSalonDroitStatut = "unknown";  vDomoticzVoletsSalonDroitLastUpdate = 0;
+vDomoticzVoletsSdbStatut = "unknown";  vDomoticzVoletsSdbLastUpdate = 0;
+vDomoticzVoletsChambreStatut = "unknown";  vDomoticzVoletsChambreLastUpdate = 0;
+
 
 /* Fonction sleep */
 function sleep(milliseconds){
@@ -289,6 +308,9 @@ function DomoticzGetUpdatedDevices() {
         if( typeof data.status != "undefined" && data.status == "OK" ) {
 
             TimeNowServer = new Date(data.ServerTime.substring(0,4), data.ServerTime.substring(5,7) - 1, data.ServerTime.substring(8,10), data.ServerTime.substring(11,13), data.ServerTime.substring(14,16), data.ServerTime.substring(17,20) ); 
+            // Variable globale de la datetime du call API pour ne récupérer que les derniers changements
+            vDomoticzLastUpdate = data.ActTime
+            ;  
 
             // On parcourt le tableau de devices
             $.each(data.result, function( Index, Device ) {
@@ -296,37 +318,6 @@ function DomoticzGetUpdatedDevices() {
                 // On sépare la gestion des scenes et des devices
                 if (Device.Type == "Scene") {
 
-                }
-
-                else if (Device.idx == vDomoticzIDVoletsSalon) {
-                    if(Device.Status == "Open") {
-                        $( "#voletssalonup" ).css( "color", "DarkGrey" ); 
-                        $( "#voletssalondown" ).css( "color", "Black" ); 
-                    }
-                    else {
-                         $( "#voletssalonup" ).css( "color", "Black" ); 
-                         $( "#voletssalondown" ).css( "color", "DarkGrey" ); 
-                    }
-                }
-                else if (Device.idx == vDomoticzIDVoletsChambre) {
-                    if(Device.Status == "Open") {
-                        $( "#voletchambreup" ).css( "color", "DarkGrey" ); 
-                        $( "#voletchambredown" ).css( "color", "Black" ); 
-                    }
-                    else {
-                         $( "#voletchambreup" ).css( "color", "Black" ); 
-                         $( "#voletchambredown" ).css( "color", "DarkGrey" ); 
-                    }
-                }
-                else if (Device.idx == vDomoticzIDVoletsSdb) {
-                    if(Device.Status == "Open") {
-                        $( "#voletsdbup" ).css( "color", "DarkGrey" ); 
-                        $( "#voletsdbdown" ).css( "color", "Black" ); 
-                    }
-                    else {
-                         $( "#voletsdbup" ).css( "color", "Black" ); 
-                         $( "#voletsdbdown" ).css( "color", "DarkGrey" ); 
-                    }
                 }
 
                 else if (Device.idx == vDomoticzIDTempSalon) { 
@@ -388,6 +379,122 @@ function DomoticzGetUpdatedDevices() {
                     else
                         $( "#timetempdehors" ).text( Device.LastUpdate.substring(8,10) + '/' + Device.LastUpdate.substring(5,7) ); // Date mise à jour 
                 }
+
+
+
+                else if (Device.idx == vDomoticzIDVoletsSalonG && Device.LastUpdate != vDomoticzVoletsSalonGaucheLastUpdate) { // On s'assure que l'action n'est pas transmise 2 fois
+                    
+                    vDomoticzVoletsSalonGaucheLastUpdate = Device.LastUpdate;
+                    var TimeVoletSalonGParts = Device.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
+                    var TimeVoletSalonG = new Date(parseInt(TimeVoletSalonGParts[1]), parseInt(TimeVoletSalonGParts[2]) - 1, parseInt(TimeVoletSalonGParts[3]), parseInt(TimeVoletSalonGParts[4]), parseInt(TimeVoletSalonGParts[5]), parseInt(TimeVoletSalonGParts[6]));
+                    var TimeDiffVoletSalonG = Math.floor( (TimeNowServer.getTime() - TimeVoletSalonG.getTime()) / 1000 ) ; // Secondes depuis la dernière action sur le volet
+                    
+                    if(Device.Status == "Open") {
+                        $( "#voletssalongaucheup" ).css( "color", "DarkGrey" ); 
+                        $( "#voletssalongauchedown" ).css( "color", "Black" ); 
+                        if(TimeDiffVoletSalonG < vTimeVoletFermeture && (vDomoticzVoletsSalonGaucheStatut == 'closed' || vDomoticzVoletsSalonGaucheStatut == 'unknown')) { // Clignotement du bouton
+                            vDomoticzVoletsSalonGaucheStatut = 'opening';
+                            EffetJSMouvementVolet( 'voletssalongaucheup', 'open', vTimeVoletFermeture - TimeDiffVoletSalonG);
+                        }
+                        else 
+                            vDomoticzVoletsSalonGaucheStatut = 'open';
+                    }
+                    else {
+                        $( "#voletssalongaucheup" ).css( "color", "Black" ); 
+                        $( "#voletssalongauchedown" ).css( "color", "DarkGrey" ); 
+                        if(TimeDiffVoletSalonG < vTimeVoletFermeture && (vDomoticzVoletsSalonGaucheStatut == 'open' || vDomoticzVoletsSalonGaucheStatut == 'unknown')) { // Clignotement du bouton
+                            vDomoticzVoletsSalonGaucheStatut = 'closing';
+                            EffetJSMouvementVolet( 'voletssalongauchedown', 'closed', vTimeVoletFermeture - TimeDiffVoletSalonG);
+                        }
+                        else
+                            vDomoticzVoletsSalonGaucheStatut = 'closed';
+                    }   
+                }
+                else if (Device.idx == vDomoticzIDVoletsSalonD && Device.LastUpdate != vDomoticzVoletsSalonDroitLastUpdate) {   // On s'assure que l'action n'est pas transmise 2 fois
+
+                    vDomoticzVoletsSalonDroitLastUpdate = Device.LastUpdate;
+                    var TimeVoletSalonDParts = Device.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
+                    var TimeVoletSalonD = new Date(parseInt(TimeVoletSalonDParts[1]), parseInt(TimeVoletSalonDParts[2]) - 1, parseInt(TimeVoletSalonDParts[3]), parseInt(TimeVoletSalonDParts[4]), parseInt(TimeVoletSalonDParts[5]), parseInt(TimeVoletSalonDParts[6]));
+                    var TimeDiffVoletSalonD = Math.floor( (TimeNowServer.getTime() - TimeVoletSalonD.getTime()) / 1000 ) ; // Secondes depuis la dernière action sur le volet
+                    
+                    if(Device.Status == "Open") {
+                        $( "#voletssalondroitup" ).css( "color", "DarkGrey" ); 
+                        $( "#voletssalondroitdown" ).css( "color", "Black" ); 
+                        if(TimeDiffVoletSalonD < vTimeVoletFermeture && (vDomoticzVoletsSalonDroitStatut == 'closed' || vDomoticzVoletsSalonDroitStatut == 'unknown')) { // Clignotement du bouton  
+                            vDomoticzVoletsSalonDroitStatut = "opening";
+                            EffetJSMouvementVolet( 'voletssalondroitup', 'open', vTimeVoletFermeture - TimeDiffVoletSalonD);
+                        }
+                        else
+                            vDomoticzVoletsSalonDroitStatut = 'open';
+                    }
+                    else {
+                         $( "#voletssalondroitup" ).css( "color", "Black" ); 
+                         $( "#voletssalondroitdown" ).css( "color", "DarkGrey" ); 
+                         if(TimeDiffVoletSalonD < vTimeVoletFermeture && (vDomoticzVoletsSalonDroitStatut == 'open' || vDomoticzVoletsSalonDroitStatut == 'unknown')) { // Clignotement du bouton  
+                            vDomoticzVoletsSalonDroitStatut = "closing";
+                            EffetJSMouvementVolet( 'voletssalondroitdown', 'closed', vTimeVoletFermeture - TimeDiffVoletSalonD);
+                        }
+                        else
+                            vDomoticzVoletsSalonDroitStatut = "closed";
+                    }
+                }
+                else if (Device.idx  == vDomoticzIDVoletsChambre && Device.LastUpdate != vDomoticzVoletsChambreLastUpdate) { // On s'assure que l'action n'est pas transmise 2 fois
+
+                    vDomoticzVoletsChambreLastUpdate = Device.LastUpdate;
+                    var TimeVoletChambreParts = Device.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
+                    var TimeVoletChambre = new Date(parseInt(TimeVoletChambreParts[1]), parseInt(TimeVoletChambreParts[2]) - 1, parseInt(TimeVoletChambreParts[3]), parseInt(TimeVoletChambreParts[4]), parseInt(TimeVoletChambreParts[5]), parseInt(TimeVoletChambreParts[6]));
+                    var TimeDiffVoletChambre = Math.floor( (TimeNowServer.getTime() - TimeVoletChambre.getTime()) / 1000 ) ; // Secondes depuis la dernière action sur le volet
+
+                    if(Device.Status == "Open") {
+                        $( "#voletchambreup" ).css( "color", "DarkGrey" ); 
+                        $( "#voletchambredown" ).css( "color", "Black" ); 
+                        if(TimeDiffVoletChambre < vTimeVoletFermeture  && (vDomoticzVoletsChambreStatut == 'closed' || vDomoticzVoletsChambreStatut == 'unknown')) { // Clignotement du bouton
+                            vDomoticzVoletsChambreStatut = "opening";
+                            EffetJSMouvementVolet( 'voletchambreup', 'open', vTimeVoletFermeture - TimeDiffVoletChambre);
+                        }
+                        else
+                            vDomoticzVoletsChambreStatut = "open";
+                    }
+                    else {
+                        $( "#voletchambreup" ).css( "color", "Black" ); 
+                        $( "#voletchambredown" ).css( "color", "DarkGrey" ); 
+                        if(TimeDiffVoletChambre < vTimeVoletFermeture && (vDomoticzVoletsChambreStatut == 'open' || vDomoticzVoletsChambreStatut == 'unknown')) { // Clignotement du bouton  
+                            vDomoticzVoletsChambreStatut = "closing";  
+                            EffetJSMouvementVolet( 'voletchambredown', 'closed', vTimeVoletFermeture - TimeDiffVoletChambre);
+                        }
+                        else
+                            vDomoticzVoletsChambreStatut = "closed";
+                    }
+                }
+                else if (Device.idx == vDomoticzIDVoletsSdb && Device.LastUpdate != vDomoticzVoletsSdbLastUpdate) { // On s'assure que l'action n'est pas transmise 2 fois
+
+                    vDomoticzVoletsSdbLastUpdate = Device.LastUpdate;
+                    var TimeVoletSdbParts = Device.LastUpdate.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
+                    var TimeVoletSdb = new Date(parseInt(TimeVoletSdbParts[1]), parseInt(TimeVoletSdbParts[2]) - 1, parseInt(TimeVoletSdbParts[3]), parseInt(TimeVoletSdbParts[4]), parseInt(TimeVoletSdbParts[5]), parseInt(TimeVoletSdbParts[6]));
+                    var TimeDiffVoletSdb = Math.floor( (TimeNowServer.getTime() - TimeVoletSdb.getTime()) / 1000 ) ; // Secondes depuis la dernière action sur le volet
+
+                    if(Device.Status == "Open") {
+                        $( "#voletsdbup" ).css( "color", "DarkGrey" ); 
+                        $( "#voletsdbdown" ).css( "color", "Black" ); 
+                        if(TimeDiffVoletSdb < vTimeVoletFermeture && (vDomoticzVoletsSdbStatut == 'closed' || vDomoticzVoletsSdbStatut == 'unknown')) { // Clignotement du bouton  
+                            vDomoticzVoletsSdbStatut = "opening";
+                            EffetJSMouvementVolet( 'voletsdbup', 'open', vTimeVoletFermeture - TimeDiffVoletSdb);
+                        }
+                        else
+                            vDomoticzVoletsSdbStatut = "open";
+                    }
+                    else {
+                        $( "#voletsdbup" ).css( "color", "Black" ); 
+                        $( "#voletsdbdown" ).css( "color", "DarkGrey" ); 
+                        if(TimeDiffVoletSdb < vTimeVoletFermeture && (vDomoticzVoletsSdbStatut == 'open' || vDomoticzVoletsSdbStatut == 'unknown')) { // Clignotement du bouton 
+                            vDomoticzVoletsSdbStatut = "closing";  
+                            EffetJSMouvementVolet( 'voletsdbdown', 'closed', vTimeVoletFermeture - TimeDiffVoletSdb);
+                        }
+                        else
+                            vDomoticzVoletsSdbStatut = "closed";
+                    }
+                }
+                
 
                 else if (Device.idx == vDomoticzIDChauffageSalonAutoPresence) {
                     if(Device.Status == "On") {
@@ -530,12 +637,39 @@ function DomoticzGetUpdatedDevices() {
                     }
                 }
 
+                else if (Device.idx == vDomoticzIDCamera) {
+                    if(Device.Status == "On") {
+                        $( "#cameraonoff" ).attr('class', 'btn btn-danger btn-md');
+                        $( "#cameraonoff" ).text( "Caméra ON" );
+                    }
+                    else {
+                        $( "#cameraonoff" ).attr('class', 'btn btn-default btn-md');
+                        $( "#cameraonoff" ).text( "Caméra OFF" );
+                    }
+                }
+
                 else if (Device.idx == vDomoticzIDPowerOffPrise2h) {
                 }
                 else if (Device.idx == vDomoticzIDLampeChambreColorChange) {
                 }
 
             });
+
+
+                    
+             // Gestion de l'affichage du bouton commun central des 2 volets
+            if(vDomoticzVoletsSalonDroitStatut == 'open' && vDomoticzVoletsSalonGaucheStatut == 'open') { 
+                $( "#voletssalonup" ).css( "color", "DarkGrey" ); 
+                $( "#voletssalondown" ).css( "color", "Black" ); 
+            }
+            else if(vDomoticzVoletsSalonDroitStatut == 'closed' && vDomoticzVoletsSalonGaucheStatut == 'closed') { 
+                $( "#voletssalonup" ).css( "color", "Black" ); 
+                $( "#voletssalondown" ).css( "color", "DarkGrey" ); 
+            }
+            else {
+                $( "#voletssalonup" ).css( "color", "Black" ); 
+                $( "#voletssalondown" ).css( "color", "Black" );  
+            }
 
 
             // Mise à jour de la couleur des heures de rafraichissement des températures à chaque chargement des données
@@ -571,9 +705,6 @@ function DomoticzGetUpdatedDevices() {
             else
                 $( "#timetempdehors" ).css( "color", "red" );
 
-
-            // Variable globale de la datetime du call API pour ne récupérer que les derniers changements
-            vDomoticzLastUpdate = data.ActTime; 
 
             // On active le JS des boutons switch à la fin pour éviter qu'ils soient exécutés trop tôt (et qu'un call json de modification soit exécuté)
             if (vDomoticzInitSwitchJS === 0) { 
@@ -620,16 +751,43 @@ function DomoticzGetUpdatedVariables() {
                         $( "#modemaisonauto" ).attr('class', 'btn btn-success btn-lg');
                         $( "#modemaisonmanuel" ).attr('class', 'btn btn-default btn-lg');
                         $( "#modemaisonabsent" ).attr('class', 'btn btn-default btn-lg');
+                        $( "#modevoletsauto" ).css('opacity', 1);
+                        $( "#modevoletsmanuel" ).css('opacity', 1);
+                        $( "#modevoletscanicule" ).css('opacity', 1);
+                        $( "#chauffagesalonautopresence" ).css('opacity', 1);
+                        $( "#chauffagechambreauto" ).css('opacity', 1);
+                        $( "#chauffagesdbauto" ).css('opacity', 1);
+                        $( "#chauffagesalonconsigne" ).css('opacity', 1);
+                        $( "#chauffagechambreconsigne" ).css('opacity', 1);
+                        $( "#chauffagesdbconsigne" ).css('opacity', 1);
                     }
                     else if(Variable.Value == "manuel") {
                         $( "#modemaisonauto" ).attr('class', 'btn btn-default btn-lg');
                         $( "#modemaisonmanuel" ).attr('class', 'btn btn-warning btn-lg');
                         $( "#modemaisonabsent" ).attr('class', 'btn btn-default btn-lg');
+                        $( "#modevoletsauto" ).css('opacity', 0.2);
+                        $( "#modevoletsmanuel" ).css('opacity', 0.2);
+                        $( "#modevoletscanicule" ).css('opacity', 0.2);
+                        $( "#chauffagesalonautopresence" ).css('opacity', 0.2);
+                        $( "#chauffagechambreauto" ).css('opacity', 0.2);
+                        $( "#chauffagesdbauto" ).css('opacity', 0.2);
+                        $( "#chauffagesalonconsigne" ).css('opacity', 1);
+                        $( "#chauffagechambreconsigne" ).css('opacity', 1);
+                        $( "#chauffagesdbconsigne" ).css('opacity', 1);
                     }
                     else if(Variable.Value == "absent") {
                         $( "#modemaisonauto" ).attr('class', 'btn btn-default btn-lg');
                         $( "#modemaisonmanuel" ).attr('class', 'btn btn-default btn-lg');
                         $( "#modemaisonabsent" ).attr('class', 'btn btn-danger btn-lg');
+                        $( "#modevoletsauto" ).css('opacity', 1);
+                        $( "#modevoletsmanuel" ).css('opacity', 1);
+                        $( "#modevoletscanicule" ).css('opacity', 1);
+                        $( "#chauffagesalonautopresence" ).css('opacity', 0.2);
+                        $( "#chauffagechambreauto" ).css('opacity', 0.2);
+                        $( "#chauffagesdbauto" ).css('opacity', 0.2);
+                        $( "#chauffagesalonconsigne" ).css('opacity', 0.2);
+                        $( "#chauffagechambreconsigne" ).css('opacity', 0.2);
+                        $( "#chauffagesdbconsigne" ).css('opacity', 0.2);
                     }
                 }
                 else if (Variable.Name == vDomoticzScript_Mode_Volets) {
@@ -707,6 +865,52 @@ function DomoticzGetUpdatedVariables() {
                     }
                 }
 
+                else if(Variable.Name == "Info_VoletsSalonOn") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletssalonon" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsSalonOff") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletssalonoff" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsSdbOnWeekMorning") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletssdbweekmorningon" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsSdbOffWeekMorning") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletssdbweekmorningoff" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsSdbOff") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletssdboff" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsChambreOnWeek") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletschambreweekon" ).html( TimeDisplay );
+                }
+                else if(Variable.Name == "Info_VoletsChambreOff") {
+                    TimeDisplay = "&Oslash;";
+                    if (Variable.Value >= 0) 
+                        TimeDisplay = Math.floor( Variable.Value / 60) + "h" + ( (Variable.Value % 60) < 10 ? '0' + (Variable.Value % 60) : (Variable.Value % 60) );
+                    $( "#ivoletschambreoff" ).html( TimeDisplay );
+                }
+
+
+
+
             });
         }
 
@@ -727,11 +931,12 @@ function DomoticzGetUpdatedAll() {
 
     DomoticzGetUpdatedDevices();
     DomoticzGetUpdatedVariables();
-  
 }
 
 
-/* Fonction d'interpolation des couleurs RGB, t entre 0 et 1 */
+
+
+/* Fonction d'interpolation des couleurs RGB, t entre 0 et 1 (pour température et humidité) */
 function interpolationRGB(HexCodeA, HexCodeB, t)
 {
 
@@ -924,7 +1129,7 @@ function GetVelibMAJ() {
             $( "#velibtext2" ).html( "<span style='font-size: 20px;color:grey;'>Erreur API</span>" );
     })
         .fail(function(jqXHR, textStatus, errorThrown) {  // Erreur de connexion 
-            $( "#velibtext1" ).html( "<span style='font-size: 20px;color:grey;'>Erreur API</span>" );
+            $( "#velibtext2" ).html( "<span style='font-size: 20px;color:grey;'>Erreur API</span>" );
         });
 }
 
@@ -1067,10 +1272,10 @@ function GetMeteoFranceUneHeureMAJ() {
                     DatePluieHtmlHead = DatePluieHtmlHead + "<th><span class='graph-pluie-heure-time'></span></th>";
                 else
                     DatePluieHtmlHead = DatePluieHtmlHead + "<th><span class='graph-pluie-heure-time'></span></th>";
-                DatePluieHtmlBody = DatePluieHtmlBody + "<td style='background:#" + DataPluie[i].color + "'></td>";
+                DatePluieHtmlBody = DatePluieHtmlBody + "<td style='background:#" + DataPluie[i].color + "' title='" + DataPluie[i].niveauPluieText + "'></td>";
             }
 
-            $( "#pluie-title-txt" ).text( data.lastUpdate); // data.niveauPluieText 
+            $( "#pluie-title-txt" ).html( data.lastUpdate + "&nbsp;" ); // data.niveauPluieText 
             $( "#pluieuneheure" ).html( "<table  style='margin: 0px auto;'>\n<thead><tr>" + DatePluieHtmlHead + "</tr></thead>\n" +
                  "<tbody><tr class='table-pluie-heure-time'>" + DatePluieHtmlBody + "</tr></tbody>\n</table>" );
         }
@@ -1087,7 +1292,10 @@ function GetMeteoFranceUneHeureMAJ() {
 }
 
 
-
+/* Fonction de rechargement du calendrier Google */
+function ReloadCalendar() {
+    $( '#calendar-iframe' ).attr( 'src', CalendarURL );
+}
 
 
 /* Fonction d'affichage d'une surcouche de page  */
@@ -1095,25 +1303,31 @@ function OpenOverlayPage(URL) {
 
     $( "#backgroundgrey" ).show();
     $( "#divoverlay" ).show();
-    $( "#subdivoverlay" ).html( '<object type="text/html" data="' + URL + '" style="width: 100%; height: 100%;"></object>' ); 
+    $( "#divoverlay" ).html( '<a href="#" class="closeButton"></a><object type="text/html" data="' + URL + '" style="width: 100%; height: 100%;"></object>' ); 
 
     // On cache la page au premier clic en dehors de la zone centrale
     $( '#backgroundgrey' ).one( "click", function() { 
-        CloseOverlayPage()
+        CloseOverlayPage();
     });
     // On cache la page au clic sur le bouton fermer
     $( '#divoverlay a' ).on( "click", function() { 
-        CloseOverlayPage()
+        CloseOverlayPage();
     });
 
-    window.setTimeout(function() { CloseOverlayPage(); }, 15 * 60 * 1000 );  // On ferme automatiquement l'overlay au bout de 15 min
+    // La touche echap ferme l'overlay
+    $(document).keyup( function(e) { 
+        if (e.which === 27) CloseOverlayPage();
+    });
+
+    window.setTimeout(function() { CloseOverlayPage(); }, 5 * 60 * 1000 );  // On ferme automatiquement l'overlay au bout de 5 min
 }
 
 function CloseOverlayPage() {
     vDomoticzAPIError = 0;
     $( "#backgroundgrey" ).hide();
     $( '#divoverlay' ).fadeOut();
-    $( "#subdivoverlay" ).html( '' );
+    $( "#divoverlay" ).html( '' );
+    window.setTimeout(function() {  DomoticzGetUpdatedAll(); }, 1.5 * 1000 );  // On attends 1.5s pour tenter de recharger les données
 }
 
 
@@ -1146,10 +1360,10 @@ function RestartDomoticz() {
 
 
 /* Fonction d'exécution régulière car le SetInterval ne semble par marcher sur la tablette */
-function SetTimeoutRecursive(TheFunction, Delay_seconds) {
+function SetTimeoutRecursive(TheFunction, Delay_seconds, InitialLoad) {
     $( "html" ).stop(true,true);  // Workaround pour que la fonction s'exécute bien périodiquement (et pas qu'1 fois toutes les 15 min)
-    TheFunction();
-    window.setTimeout(function() { SetTimeoutRecursive(TheFunction, Delay_seconds); }, Delay_seconds * 1000 ); 
+    if(InitialLoad == 1) TheFunction();
+    window.setTimeout(function() { SetTimeoutRecursive(TheFunction, Delay_seconds, 1); }, Delay_seconds * 1000 ); 
 }
 
 
@@ -1198,6 +1412,80 @@ function confirmCustom(confirmTxt) {
 }
 
 
+/* Fonction de mise en forme des boutons de volets lorsque les volets sont dans un état de mouvement. 1 itération = 1 seconde */
+function EffetJSMouvementVolet(id_volet, etatCible, secondes) {
+
+    if(id_volet == "voletssalongaucheup" || id_volet == "voletssalongauchedown")
+        voletStatus = vDomoticzVoletsSalonGaucheStatut; 
+    else if (id_volet == "voletssalondroitup" || id_volet == "voletssalondroitdown")
+        voletStatus = vDomoticzVoletsSalonDroitStatut; 
+    else if (id_volet == "voletchambreup" || id_volet == "voletchambredown" )
+        voletStatus = vDomoticzVoletsChambreStatut; 
+    else if (id_volet == "voletsdbup" || id_volet == "voletsdbdown")
+        voletStatus = vDomoticzVoletsSdbStatut; 
+
+    console.log(id_volet + " cible " + etatCible + ", " + secondes + " secondes");
+    if(secondes > 1 && voletStatus != "closed" && voletStatus != "open") { // On continue le clignotement que si le volet n'a pas été arrété entre temps
+
+        $( '#' + id_volet ).css('color', '#c12e2a');
+        $( '#' + id_volet ).attr('class', 'glyphicon glyphicon-pause');
+        window.setTimeout(function() {  $( '#' + id_volet ).css('color', 'DarkGrey'); }, 500 ); // On remet la couleur après 500 ms
+        window.setTimeout(function() { EffetJSMouvementVolet(id_volet, etatCible, secondes - 1); }, 1000);
+    }
+
+    else { // On arrête le clignotement
+        
+        if(id_volet == "voletssalongaucheup" || id_volet == "voletssalondroitup" || id_volet == "voletchambreup" || id_volet == "voletsdbup")
+            $( '#' + id_volet ).attr('class', 'glyphicon glyphicon-arrow-up');
+        else
+            $( '#' + id_volet ).attr('class', 'glyphicon glyphicon-arrow-down');
+
+        if(id_volet == "voletssalongaucheup" || id_volet == "voletssalongauchedown")
+            vDomoticzVoletsSalonGaucheStatut = etatCible; 
+        else if (id_volet == "voletssalondroitup" || id_volet == "voletssalondroitdown")
+            vDomoticzVoletsSalonDroitStatut = etatCible; 
+        else if (id_volet == "voletchambreup" || id_volet == "voletchambredown" )
+            vDomoticzVoletsChambreStatut = etatCible; 
+        else if (id_volet == "voletsdbup" || id_volet == "voletsdbdown")
+            vDomoticzVoletsSdbStatut = etatCible; 
+
+        // Gestion de l'affichage du bouton commun central des 2 volets
+        if(vDomoticzVoletsSalonDroitStatut == 'open' && vDomoticzVoletsSalonGaucheStatut == 'open') { 
+            $( "#voletssalonup" ).css( "color", "DarkGrey" ); 
+            $( "#voletssalondown" ).css( "color", "Black" ); 
+        }
+        else if(vDomoticzVoletsSalonDroitStatut == 'closed' && vDomoticzVoletsSalonGaucheStatut == 'closed') { 
+            $( "#voletssalonup" ).css( "color", "Black" ); 
+            $( "#voletssalondown" ).css( "color", "DarkGrey" ); 
+        }
+        else {
+            $( "#voletssalonup" ).css( "color", "Black" ); 
+            $( "#voletssalondown" ).css( "color", "Black" );  
+        }
+
+        console.log(etatCible);
+    }
+}
+
+
+
+/* Fonction d'affichage en alternance du calendrier et des paramètres Domoticz */
+function ToggleShowCalendar() {
+
+    if( $( "#blocmodule-calendar" ).is(":visible") ) {
+        $( "#blocmodule-calendar" ).hide();
+        $( "#blocmodule-parameters" ).show();
+        $( "#blocmodule-calendar-title1" ).html( '<img class="blocmodule-title-logo" id="parameters-title" src="dashboard/images/parameters.png" alt="Param"> Param.' );
+        $( "#blocmodule-calendar-title2" ).html( '<span class="glyphicon glyphicon glyphicon-hand-right" id="voletssalondown"  aria-hidden="true"></span> Calendrier' );
+    }
+    else {   
+        $( "#blocmodule-parameters" ).hide();
+        $( "#blocmodule-calendar" ).show();
+        $( "#blocmodule-calendar-title1" ).html( '<img class="blocmodule-title-logo" id="calendrier-title" src="dashboard/images/calendrier.png" alt="Calendrier">Calendrier' );
+        $( "#blocmodule-calendar-title2" ).html( '<span class="glyphicon glyphicon glyphicon-hand-right" id="voletssalondown"  aria-hidden="true"></span> Param.' );
+    }
+}
+
 
 
 /* Exécution lorsque la page est totalement chargée */
@@ -1207,8 +1495,8 @@ $(document).ready(function(){
     $.fn.bootstrapSwitch.defaults.indeterminate = true; // Par défaut : état non déterminé
     $.fn.bootstrapSwitch.defaults.onColor = 'info';
     $.fn.bootstrapSwitch.defaults.offColor = 'warning';
-    $("[name='prise-checkbox']").bootstrapSwitch('size', 'large');
-    $("[name='reveil-checkbox']").bootstrapSwitch('size', 'medium');
+    // $("[name='prise-checkbox']").bootstrapSwitch('size', 'large');
+    $("[name='reveil-checkbox']").bootstrapSwitch('size', 'small');
 
     // Initialisation du JS des listes déroulantes
     $('#reveil_sel_hour').on('changed.bs.select', function (event, clickedIndex, newValue, oldValue) {
@@ -1223,9 +1511,9 @@ $(document).ready(function(){
   
 
     // On lance les fonctions de mise à jour à intervalles réguliers (en secondes)
-    SetTimeoutRecursive(DomoticzGetUpdatedAll, 30 ); 
+    SetTimeoutRecursive(DomoticzGetUpdatedAll, 30, 1 ); 
  
-   // Initialisation digiclock
+    // Initialisation digiclock
     $('#digiclock').jdigiclock({
         imagesPath : 'dashboard/jdigiclock/images/',
         am_pm : false,
@@ -1235,12 +1523,13 @@ $(document).ready(function(){
     });
 
 
-    SetTimeoutRecursive(GetVelibMAJ, 120 ); // 2 min, API Velib officielle
-    SetTimeoutRecursive(InitRatpMAJ, 300 ); // 5 min, API retro engineered par Pierre Grimaud 
+    SetTimeoutRecursive(GetVelibMAJ, 120, 1 ); // 2 min, API Velib officielle
+    SetTimeoutRecursive(InitRatpMAJ, 300, 1 ); // 5 min, API ratp par Pierre Grimaud 
     
 
-    SetTimeoutRecursive(GetAirParifMAJ, 2700 );  // 45 Min, besoin d'un proxy pour le cross origin
-    SetTimeoutRecursive(GetMeteoFranceUneHeureMAJ, 300 ); // 5 Min , besoin d'un proxy pour le cross origin
+    SetTimeoutRecursive(GetAirParifMAJ, 2700, 1 );  // 45 Min, besoin d'un proxy pour le cross origin
+    SetTimeoutRecursive(GetMeteoFranceUneHeureMAJ, 300, 1 ); // 5 Min , besoin d'un proxy pour le cross origin 
+
+    SetTimeoutRecursive(ReloadCalendar, 7200, 1 );  // 2h
 
 });
-
