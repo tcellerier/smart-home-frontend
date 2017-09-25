@@ -12,13 +12,14 @@
     <!-- Web App Manifest -->
     <link rel="manifest" href="dashboard/manifest.json">
 
-    <meta http-equiv="refresh" content="86400">
+    <!-- Lors du rechargement automatique de la page, l'écran de la tablette n'est pas rallumée  :) (90000 s = 25h) -->
+    <meta http-equiv="refresh" content="90000">
 
     <title>Domoticz dashboard</title>
     <!-- Bootstrap -->
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="dashboard/jdigiclock/jquery.jdigiclock.css">
+    <link href="dashboard/jdigiclock/jquery.jdigiclock.css" rel="stylesheet">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-switch.min.css" rel="stylesheet">
     <link href="dashboard/bootstrap-3.3.7/css/bootstrap-select.min.css" rel="stylesheet">
 
@@ -74,45 +75,54 @@
       color: #96AA4F;
       position: absolute;
       float: left;
-      top: -15px;
-      left: 15px;
+      top: -12px;
+      left: 12px;
       text-align: left;
+      padding-left: 5px;
+      padding-right: 5px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      background-color: inherit;
     }
 
     .blocmodule-title-logo {
       width: 25px;
+    }
 
+
+    #blocmodule-parameters {
+      display: none;
     }
   
     #pluie-title {
-      width: 40px;
+      width: 35px;
     }
     #velib-title {
       position: relative;
-      top: -5px;
+      top: -1px;
       width: 65px;
     }
     #airparif-title {
       position: relative;
-      top: -5px;
+      top: 1px;
+      left: -14px;
       width: 65px;
     }
     #ratp-title {
       position: relative;
       width: 85px;
-      top: -5px;
+      top: 0px;
       left: -5px;
+    }
+    #reveil-title {
+      width: 20px;
+    }
+    #lumierechambre-title {
+      width: 22px;
     }
     #wallplug-title {
       width: 30px;
     } 
-    #reveil-title {
-      width: 20px;
-    }
-
-    #lumierechambre-title {
-      width: 22px;
-    }
 
     .blocmodule-body { 
       color: #FFFFFF;
@@ -143,21 +153,45 @@
       right: 5px;
     }
 
-
-
     .table-pluie-heure-time td {
       border-collapse: collapse;
-      border: 1px solid #414141;
+      border: 1px solid #CFCFCF;
       width: 40px;
-      height: 30px;
-      border-color: #CFCFCF;
+      height: 28px;
     }
     .graph-pluie-heure-time {
       font:0.75em /1.4em Arial, Helvetica, sans-serif;
     }
 
+
+    #calendar-wrap {
+      width: 97%;
+      height: 213px;
+      padding: 0;
+      overflow: hidden;
+      margin:0 auto;
+    }
+    #calendar-iframe {
+      -ms-zoom: 1.3;
+      -ms-transform-origin: 75px 20px;
+      -moz-transform: scale(1.3);
+      -moz-transform-origin: 75px 20px;
+      -o-transform: scale(1.3);
+      -o-transform-origin: 75px 20px;
+      -webkit-transform: scale(1.3);
+      -webkit-transform-origin: 75px 20px;
+    }
+
+
+    .btn-medpadding {
+      padding: 10px 11px;
+    }
     .btn-lowpadding {
       padding: 10px 8px;
+    }
+
+    .btn-darkgreen {
+      background-color: #327232;
     }
 
     .closeButton
@@ -168,21 +202,31 @@
       right:-10px;
       width:29px;
       height:29px;
+      z-index: 9999;
       background:url('/dashboard/images/close-button.png') no-repeat center center;
     }
 
     -->
     </STYLE>
 
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <!-- The JS defer scripts begin to download immediately without pausing the parser AND are guaranteed to be executed in the order they occur in the page -->
+    <script src="dashboard/jquery-3.1.0.min.js"></script>
+
+    <script src="dashboard/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script src="dashboard/bootstrap-3.3.7/js/bootstrap-select.min.js"></script>
+    <script src="dashboard/bootstrap-3.3.7/js/bootstrap-switch.min.js"></script>
+
+    <script type="text/javascript" src="dashboard/cross-origin/jquery.ajax-cross-origin.min.js"></script>
+
   </head>
 
   <body>
 
   <!-- Bloc overlay -->
-  <div id="divoverlay" style="display: none; position: fixed; z-index: 9551; left: 8%; top: 8%; width: 84%; height: 84%; margin:0 auto; border-style: ridge;">
-    <div id="subdivoverlay" style="overflow:scroll; -webkit-overflow-scrolling:touch; width: 100%; height: 100%"></div>
-    <a href="#" class="closeButton"></a>
-  </div>
+  <div id="divoverlay" style="overflow:visible; display: none; position: fixed; z-index: 9551; left: 8%; top: 8%; width: 84%; height: 84%; margin:0 auto; border-style: ridge; border-radius: 9px;"></div>
   <div id="backgroundgrey" style="opacity: 0.5; background:#000000; display: none; position: fixed; z-index: 9550; width: 100%; height: 100%; margin:0 auto;"></div>
 
 
@@ -221,6 +265,8 @@
               <li><a href="#" onClick="OpenOverlayPage('/dashboard/ratp.html');">RATP</a></li>
               <li role="separator" class="divider"></li>
               <li><a href="#" onClick="OpenOverlayPage('/dashboard/velib.html');">Velib'</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="#" onClick="OpenOverlayPage('/dashboard/calendrier.html');">Calendrier</a></li>
             </ul>
           </li>     
         </ul>
@@ -243,17 +289,24 @@
       <!-- 1ere colonne : modes, volets, temperatures-->
       <div class="col-lg-4 col-sm-7">
       
-        <div class="blocmodule" style="cursor: pointer;" id="presencecouleur">
-          <div class="blocmodule-title"><img class="blocmodule-title-logo" src="dashboard/images/presence.png" onclick="DomoticzSetPresenceOn();" alt="présence"> </div>
-          <div class="blocmodule-body"  onclick="DomoticzSetPresenceOn();" id="presencetexte"></div>
-        </div>
+        <table style="width: 100%">
+          <tr>
+            <td width="90%">
+              <div class="blocmodule" style="cursor: pointer;" id="presencecouleur">
+                <div class="blocmodule-title" style="background-color: transparent;"><img class="blocmodule-title-logo" src="dashboard/images/presence.png" onclick="DomoticzSetPresenceOn();" alt="présence"> </div>
+                <div class="blocmodule-body"  onclick="DomoticzSetPresenceOn();" id="presencetexte"></div>
+              </div>
+            </td>
+            <td style="padding-left: 5px; padding-right: 5px; vertical-align: bottom"><button type="button" class="btn btn-default btn-md" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDCamera + '&switchcmd=Toggle', $( '#cameraonoff' ).text() === 'Caméra OFF' ? 'Caméra ON' : 'Caméra OFF' );" id="cameraonoff" style="padding-right: 6px; padding-left: 6px">Caméra OFF</button></td>
+          </tr>
+        </table>
 
-        <div class="blocmodule">
-          <div class="blocmodule-title"><img class="blocmodule-title-logo" id="pilot-title" src="dashboard/images/pilot.png" alt="Mode"> Mode Domoticz</div>
+        <div class="blocmodule" style="margin-top: 10px">
+          <div class="blocmodule-title"><img class="blocmodule-title-logo" id="pilot-title" src="dashboard/images/pilot.png" alt="Mode"> Mode</div>
           <div class="blocmodule-body">
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=auto', 'Maison mode auto activé');" id="modemaisonauto">Auto</button>&nbsp;&nbsp;&nbsp;&nbsp;
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=manuel', 'Maison mode manuel activé');" id="modemaisonmanuel">Manuel</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=absent', 'Maison mode absent activé');" id="modemaisonabsent">Absent</button>
+              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=auto', 'Mode auto activé');" id="modemaisonauto">Auto</button>&nbsp;&nbsp;&nbsp;&nbsp;
+              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=manuel', 'Mode manuel activé');" id="modemaisonmanuel">Manuel</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Maison + '&vtype=2&vvalue=absent', 'Mode absent activé');" id="modemaisonabsent">Absent</button>
           </div>
         </div>
 
@@ -261,23 +314,26 @@
         <div class="blocmodule">
           <div class="blocmodule-title"><img class="blocmodule-title-logo" id="volets-title" src="dashboard/images/volets.png" alt="Volets"> Volets</div>
           <div class="blocmodule-body">
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=auto', 'Volets mode auto activé');" id="modevoletsauto">Auto</button>&nbsp;&nbsp;&nbsp;&nbsp;
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=manuel', 'Volets mode manuel activé');" id="modevoletsmanuel">Manuel</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=canicule', 'Volets mode canicule activé');" id="modevoletscanicule">Canicule</button><br>
+              <button type="button" class="btn btn-default btn-lg btn-medpadding" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_VoletsTardifs + '&vtype=2&vvalue=' + (vModeVolets == 'auto' ?  vDomoticzVoletsTardifs == 'off' ? 'on' : 'off' : vDomoticzVoletsTardifs) ); sleep(500); DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=auto', 'Volets mode auto ' + (vModeVolets == 'auto' ?  vDomoticzVoletsTardifs == 'off' ? 'tardif ' : '' : vDomoticzVoletsTardifs == 'on' ? 'tardif ' : '') + 'activé');" id="modevoletsauto">Auto</button>&nbsp;&nbsp;&nbsp;&nbsp;
+              <button type="button" class="btn btn-default btn-lg btn-medpadding" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=manuel', 'Volets mode manuel activé');" id="modevoletsmanuel">Manuel</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <button type="button" class="btn btn-default btn-lg btn-medpadding" onclick="DomoticzCallAPI('type=command&param=updateuservariable&vname=' + vDomoticzScript_Mode_Volets + '&vtype=2&vvalue=canicule', 'Volets mode canicule activé');" id="modevoletscanicule">Canicule</button><br>
 
               <table style="width: 100%;margin-top: 30px">
                 <tr>
-                  <td style="width: 33%;">
-                    <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;margin-bottom: 10px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalon +'&switchcmd=On', 'Ouverture des volets du salon');">
-                      <span class="glyphicon glyphicon-arrow-up" id="voletssalonup" aria-hidden="true"></span>
-                    </button></p>
-                    <p>Salon</p>
-                    <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalon + '&switchcmd=Off', 'Fermeture des volets du salon');">
-                      <span class="glyphicon glyphicon-arrow-down" id="voletssalondown"  aria-hidden="true"></span>
-                    </button></p>
+                  <td>
+                    <p style="margin-bottom: 0">
+                      <button type="button" class="btn btn-default btn-lg" style="width: 30px;margin-bottom: 10px;padding-left: 1px;padding-right: 1px" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalonG +'&switchcmd=On', 'Ouverture du volet gauche salon');"><span class="glyphicon glyphicon-arrow-up" id="voletssalongaucheup" aria-hidden="true"></span></button>
+                      <button type="button" class="btn btn-default btn-lg" style="width: 70px;margin-bottom: 10px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalon +'&switchcmd=On', 'Ouverture des volets du salon'); window.setTimeout(function() { DomoticzGetUpdatedAll(); }, 6 * 1000 );"><span class="glyphicon glyphicon-arrow-up" id="voletssalonup" aria-hidden="true"></span></button>
+                      <button type="button" class="btn btn-default btn-lg" style="width: 30px;margin-bottom: 10px;padding-left: 1px;padding-right: 1px" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalonD +'&switchcmd=On', 'Ouverture du volet droit du salon');"><span class="glyphicon glyphicon-arrow-up" id="voletssalondroitup" aria-hidden="true"></span></button>
+                    </p>
+                    <p><span style="color:#727272">(G)</span>&nbsp;&nbsp;&nbsp;Salon&nbsp;&nbsp;&nbsp;<span style="color:#727272">(D)</span></p>
+                    <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 30px;padding-left: 1px;padding-right: 1px" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalonG +'&switchcmd=Off', 'Fermeture du volet gauche salon');"><span class="glyphicon glyphicon-arrow-down" id="voletssalongauchedown" aria-hidden="true"></span></button>
+                      <button type="button" class="btn btn-default btn-lg" style="width: 70px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalon + '&switchcmd=Off', 'Fermeture des volets du salon'); window.setTimeout(function() { DomoticzGetUpdatedAll(); }, 6 * 1000 );"><span class="glyphicon glyphicon-arrow-down" id="voletssalondown"  aria-hidden="true"></span></button>
+                      <button type="button" class="btn btn-default btn-lg" style="width: 30px;padding-left: 1px;padding-right: 1px" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSalonD +'&switchcmd=Off', 'Fermeture du volet droit salon');"><span class="glyphicon glyphicon-arrow-down" id="voletssalondroitdown" aria-hidden="true"></span></button>
+                    </p>
                     
                   </td>
-                  <td style="width: 33%;">
+                  <td>
                     <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;margin-bottom: 10px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsChambre + '&switchcmd=On', 'Ouverture des volets de la chambre');">
                       <span class="glyphicon glyphicon-arrow-up" style="cursor: pointer;" id="voletchambreup" aria-hidden="true"></span>
                     </button></p>
@@ -285,8 +341,8 @@
                     <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsChambre + '&switchcmd=Off', 'Fermeture des volets de la chambre');">
                       <span class="glyphicon glyphicon-arrow-down" id="voletchambredown"  aria-hidden="true"></span>
                     </button></p>
-                  <td style="width: 33%;">
-                    <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;margin-bottom: 10px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSdb + '&switchcmd=On', 'Ouverture des volets de la salle de bain');DomoticzSetPresenceOn();">
+                  <td>
+                    <p style="margin-bottom: 0"><button type="button" class="btn btn-default btn-lg" style="width: 60px;margin-bottom: 10px;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDVoletsSdb + '&switchcmd=On', 'Ouverture des volets de la salle de bain');">
                       <span class="glyphicon glyphicon-arrow-up" id="voletsdbup" aria-hidden="true"></span>
                     </button></p>
                     <p>Salle de bain</p>
@@ -310,8 +366,8 @@
                   <table style="width: 100%;">
                     <tr>
                       <td style="vertical-align: text-top;">
-                        <div class="txt_temp" id="tempdehors"></div>
-                        <div class="txt_humid" id="humiditedehors"></div>
+                        <div class="txt_temp" id="tempdehors">&nbsp;</div>
+                        <div class="txt_humid" id="humiditedehors">&nbsp;</div>
                       </td>
                       <td>
                         
@@ -329,13 +385,13 @@
                   <table style="width: 100%;">
                     <tr>
                       <td style="vertical-align: text-top;">
-                        <div class="txt_temp" id="tempsalon"></div>
-                        <div class="txt_humid" id="humiditesalon"></div>
+                        <div class="txt_temp" id="tempsalon">&nbsp;</div>
+                        <div class="txt_humid" id="humiditesalon">&nbsp;</div>
                       </td>
                       <td>
                         <div class="txt_temp-consigne">
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-up" aria-hidden="true" OnClick="SetConsigneChauffage('salon', 'up');"></span><br>
-                          <span id="consignesalon"></span><br>
+                          <span id="consignesalon">&nbsp;</span><br>
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-down" aria-hidden="true" OnClick="SetConsigneChauffage('salon', 'down');"></span>
                         </div>
                       </td>
@@ -354,13 +410,13 @@
                   <table style="width: 100%;">
                     <tr>
                       <td style="vertical-align: text-top;">
-                        <div class="txt_temp" id="tempchambre"></div>
-                        <div class="txt_humid" id="humiditechambre"></div>
+                        <div class="txt_temp" id="tempchambre">&nbsp;</div>
+                        <div class="txt_humid" id="humiditechambre">&nbsp;</div>
                       </td>
                       <td>
                         <div class="txt_temp-consigne">
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-up" aria-hidden="true" OnClick="SetConsigneChauffage('chambre', 'up');"></span><br>
-                          <span id="consignechambre"></span><br>
+                          <span id="consignechambre">&nbsp;</span><br>
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-down" aria-hidden="true" OnClick="SetConsigneChauffage('chambre', 'down');"></span>
                         </div>
                       </td>
@@ -377,13 +433,13 @@
                   <table style="width: 100%;">
                     <tr>
                       <td style="vertical-align: text-top;">
-                        <div class="txt_temp" id="tempsdb"></div>
-                        <div class="txt_humid" id="humiditesdb"></div>
+                        <div class="txt_temp" id="tempsdb">&nbsp;</div>
+                        <div class="txt_humid" id="humiditesdb">&nbsp;</div>
                       </td>
                       <td>
                         <div class="txt_temp-consigne">
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-up" aria-hidden="true" OnClick="SetConsigneChauffage('sdb', 'up');"></span><br>
-                          <span id="consignesdb"></span><br>
+                          <span id="consignesdb">&nbsp;</span><br>
                           <span style="cursor: pointer;" class="glyphicon glyphicon-chevron-down" aria-hidden="true" OnClick="SetConsigneChauffage('sdb', 'down');"></span>
                         </div>
                       </td>
@@ -402,47 +458,88 @@
 
 
 
-      <!-- 3è colonne : chauffage, prise, reveil, lumière -->
+      <!-- 3è colonne : chauffage, reveil, calendrier ... (droite) -->
       <div class="col-lg-3 col-lg-push-5 col-sm-5">
+
+        <div class="blocmodule">
+          <div class="blocmodule-title" onClick="ToggleShowCalendar();" id="blocmodule-calendar-title1" style="cursor: pointer; z-index: 5; top: -13px;"><img class="blocmodule-title-logo" id="calendrier-title" src="dashboard/images/calendrier.png" alt="Calendrier">Calendrier</div>
+          <div class="blocmodule-title" onClick="ToggleShowCalendar();" id="blocmodule-calendar-title2" style="right:12px; left: initial; cursor: pointer; z-index: 5; top: -13px; color:#697637"><span class="glyphicon glyphicon glyphicon-hand-right" id="voletssalondown"  aria-hidden="true"></span> Param.</div>
+          <div class="blocmodule-body" id="blocmodule-calendar">
+            <div id="calendar-wrap">
+              <!-- Div caché pour cliquer dessus et ouvrir l'overlay -->
+              <div style="position: absolute; width: 100%; height: 213px; z-index: 500; cursor: pointer;" onClick="OpenOverlayPage('/dashboard/calendrier.html');"></div>
+              <!-- Attention : les cookies Third Parties doivent être activés pour que le code suivant fonctionne -->
+              <iframe id="calendar-iframe" style="border-width:0;" height="213" frameborder="0" scrolling="no"></iframe>
+            </div>
+          </div>
+          <div class="blocmodule-body" id="blocmodule-parameters" style="padding-left: 7px; padding-right: 4px">
+            <table style="font-size: 14pt; width:100%;">
+              <tr>
+                <td style="text-align: left;">Volets Salon ON</td>
+                <td><div id="ivoletssalonon"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left; padding-bottom: 12px">Volets Salon OFF</td>
+                <td style="padding-bottom: 12px"><div id="ivoletssalonoff"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left">Volet Sdb semaine ON</td>
+                <td><div id="ivoletssdbweekmorningon"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left">Volet Sdb semaine OFF</td>
+                <td><div id="ivoletssdbweekmorningoff"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left; padding-bottom: 12px">Volet Sdb OFF</td>
+                <td style="padding-bottom: 12px"><div id="ivoletssdboff"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left">Volet Chambre semaine ON</td>
+                <td><div id="ivoletschambreweekon"></div></td>
+              </tr>
+              <tr>
+                <td style="text-align: left">Volet Chambre OFF</td>
+                <td><div id="ivoletschambreoff"></div></td>
+              </tr>
+            </table>
+          </div>
+        </div>
 
        <div class="blocmodule">
           <div class="blocmodule-title"><img class="blocmodule-title-logo" id="chauffage-title" src="dashboard/images/chauffage.png" alt="Mode"> Chauffage</div>
           <div class="blocmodule-body">
             <table style="width: 100%;">
+              <tr>
+                <td rowspan="2" style="vertical-align: top">Salon<br><p style="margin: 5px"></p><button type="button" class="btn btn-default btn-lg" id="chauffagesalonautopresence" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonAutoPresence + '&switchcmd=Toggle', 'Chauffage salon - Mode auto présence modifié');">Auto<br>prés.</button></td>
+                <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConsigne + '&switchcmd=On', 'Chauffage salon - Mode consigne activé à ' + vDomocitzConsigneSalon + ' °C');">Consigne</button></td>
+                <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg" id="chauffagesalononff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonOnOff + '&switchcmd=Toggle', $( '#chauffagesalononff' ).text() === 'Off' ? 'Chauffage salon On' : 'Chauffage salon Off' );">Off</button></td>
+              </tr>
+              <tr>
+                <td><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonmanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConsigne + '&switchcmd=Off', 'Chauffage salon - Mode Manuel activé');">Manuel</button></td>
+                <td><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonconfort" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConfort + '&switchcmd=Toggle', $( '#chauffagesalonconfort' ).text() === 'Eco' ? 'Chauffage salon - Mode Confort activé' : 'Chauffage salon - Mode Eco activé' );">Eco</button></td>
+              </tr>
+            </table>
+            <table style="width: 100%; margin-top: 30px;">
+              <tr>
+                <td rowspan="2" style="vertical-align: top">Chambre<br><p style="margin: 5px"></p><button type="button" class="btn btn-default btn-lg" id="chauffagechambreauto" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreAuto + '&switchcmd=Toggle', 'Chauffage chambre - Mode auto planification modifié');">Auto<br>planif</button></td>
+                  <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambreconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConsigne + '&switchcmd=On', 'Chauffage chambre - Mode consigne activé à ' + vDomocitzConsigneChambre + ' °C');">Consigne</button></td>
+                <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg" id="chauffagechambreonoff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreOnOff + '&switchcmd=Toggle', $( '#chauffagechambreonoff' ).text() === 'Off' ? 'Chauffage chambre On' : 'Chauffage chambre Off' );">Off</button></td>
+              </tr>
+              <tr>
+                <td><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambremanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConsigne + '&switchcmd=Off', 'Chauffage chambre - Mode manuel activé');">Manuel</button></td>
+                <td><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambreconfort" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConfort + '&switchcmd=Toggle', $( '#chauffagechambreconfort' ).text() === 'Eco' ? 'Chauffage chambre - Mode Confort activé' : 'Chauffage chambre - Mode Eco activé' );">Eco</button></td>
+              </tr>
+    
+            </table>
+            <table style="width: 100%; margin-top: 30px;">
               <tr >
-                <td colspan="3" style="text-align: left; padding-left:20px; padding-top: 5px">Salon</td>
+                <td rowspan="2" style="vertical-align: top">Salle de bain<br><p style="margin: 5px"></p><button type="button" class="btn btn-default btn-lg" id="chauffagesdbauto" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbAuto + '&switchcmd=Toggle', 'Chauffage salle de bain - Mode auto planification modifié');">Auto<br>planif</button></td>
+                <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesdbconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbConsigne + '&switchcmd=On', 'Chauffage salle de bain - Mode consigne activé à ' + vDomocitzConsigneSdb + ' °C');">Consigne</button></td>
+                <td style="vertical-align: bottom; padding-bottom: 10px"><button type="button" class="btn btn-default btn-lg" id="chauffagesdbonoff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbOnOff + '&switchcmd=Toggle', $( '#chauffagesdbonoff' ).text() === 'Off' ? 'Chauffage salle de bain On' : 'Chauffage salle de bain Off' );">Off</button></td>
               </tr>
               <tr>
-                <td style="width: 30%" rowspan="2"><p><button type="button" class="btn btn-default btn-lg" id="chauffagesalonautopresence" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonAutoPresence + '&switchcmd=Toggle', 'Chauffage salon - Mode auto présence modifié');">Auto<br>prés.</button></p></td>
-                <td style="width: 30%"><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConsigne + '&switchcmd=On', 'Chauffage salon - Mode consigne activé à ' + vDomocitzConsigneSalon + ' °C');">Consigne</button></p></td>
-                <td style="width: 20%"><p><button type="button" class="btn btn-default btn-lg" id="chauffagesalononff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonOnOff + '&switchcmd=Toggle', $( '#chauffagesalononff' ).text() === 'Off' ? 'Chauffage salon On' : 'Chauffage salon Off' );">Off</button></p></td>
-              </tr>
-              <tr>
-                <td><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonmanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConsigne + '&switchcmd=Off', 'Chauffage salon - Mode Manuel activé');">Manuel</button></p></td>
-                <td><P><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesalonconfort" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSalonConfort + '&switchcmd=Toggle', $( '#chauffagesalonconfort' ).text() === 'Eco' ? 'Chauffage salon - Mode Confort activé' : 'Chauffage salon - Mode Eco activé' );">Eco</button></p></td>
-              </tr>
-              <tr >
-                <td colspan="3" style="text-align: left; padding-left:20px; padding-top: 5px">Chambre</td>
-              </tr>
-              <tr>
-                <td rowspan="2"><p><button type="button" class="btn btn-default btn-lg" id="chauffagechambreauto" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreAuto + '&switchcmd=Toggle', 'Chauffage chambre - Mode auto planification modifié');">Auto<br>planif</button></p></td>
-                  <td><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambreconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConsigne + '&switchcmd=On', 'Chauffage chambre - Mode consigne activé à ' + vDomocitzConsigneChambre + ' °C');">Consigne</button></p></td>
-                <td><p><button type="button" class="btn btn-default btn-lg" id="chauffagechambreonoff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreOnOff + '&switchcmd=Toggle', $( '#chauffagechambreonoff' ).text() === 'Off' ? 'Chauffage chambre On' : 'Chauffage chambre Off' );">Off</button></p></td>
-              </tr>
-              <tr>
-                <td><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambremanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConsigne + '&switchcmd=Off', 'Chauffage chambre - Mode manuel activé');">Manuel</button></p></td>
-                <td><P><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagechambreconfort" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageChambreConfort + '&switchcmd=Toggle', $( '#chauffagechambreconfort' ).text() === 'Eco' ? 'Chauffage chambre - Mode Confort activé' : 'Chauffage chambre - Mode Eco activé' );">Eco</button></p></td>
-              </tr>
-              <tr >
-                <td colspan="3" style="text-align: left; padding-left:20px; padding-top: 5px">Salle de bain</td>
-              </tr>
-              <tr>
-                <td rowspan="2"><p><button type="button" class="btn btn-default btn-lg" id="chauffagesdbauto" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbAuto + '&switchcmd=Toggle', 'Chauffage salle de bain - Mode auto planification modifié');">Auto<br>planif</button></p></td>
-                <td><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesdbconsigne" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbConsigne + '&switchcmd=On', 'Chauffage salle de bain - Mode consigne activé à ' + vDomocitzConsigneSdb + ' °C');">Consigne</button></p></td>
-                <td><p><button type="button" class="btn btn-default btn-lg" id="chauffagesdbonoff" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbOnOff + '&switchcmd=Toggle', $( '#chauffagesdbonoff' ).text() === 'Off' ? 'Chauffage salle de bain On' : 'Chauffage salle de bain Off' );">Off</button></p></td>
-              </tr>
-              <tr>
-                <td><p><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesdbmanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbConsigne + '&switchcmd=Off', 'Chauffage salle de bain - Mode manuel activé');">Manuel</button></td>
+                <td><button type="button" class="btn btn-default btn-lg btn-lowpadding" id="chauffagesdbmanuel" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDChauffageSdbConsigne + '&switchcmd=Off', 'Chauffage salle de bain - Mode manuel activé');">Manuel</button></td>
                 <td></td>
               </tr>
        
@@ -450,18 +547,11 @@
   
           </div>
         </div>  
-         <div class="blocmodule">
-          <div class="blocmodule-title"><img class="blocmodule-title-logo" id="wallplug-title" src="dashboard/images/wallplug.png" alt="Prise"> Prise</div>
-          <div class="blocmodule-body">
-            <input type="checkbox" name="prise-checkbox">&nbsp;&nbsp;&nbsp;&nbsp;
-            <button type="button" class="btn btn-default btn-lg" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDPowerOffPrise2h + '&switchcmd=On', 'Prise Fibaro désactivée pendant 2 heures');">Off 2h</button>
-              
-          </div>
-        </div>  
+
         <div class="blocmodule">
           <div class="blocmodule-title"><img class="blocmodule-title-logo" id="reveil-title" src="dashboard/images/reveil.png" alt="Reveil"> Réveil</div>
           <div class="blocmodule-body">
-            <input type="checkbox" name="reveil-checkbox">&nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="checkbox" name="reveil-checkbox">&nbsp;&nbsp;&nbsp;
             <span class="form-group">
               <select class="selectpicker" data-width="60px" id="reveil_sel_hour" title="h" data-size="15" >
                 <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
@@ -472,73 +562,54 @@
             </span>
           </div>
         </div>
-        <div class="blocmodule">
-          <div class="blocmodule-title"><img class="blocmodule-title-logo" id="lumierechambre-title" src="dashboard/images/lumiere.png" alt="Lumière"> Lumière chambre</div>
-          <div class="blocmodule-body">
 
-          <table style="opacity: 0.8; margin: 0px auto; border-collapse: separate; border-spacing: 12px 4px;">
-            <tr style="height: 30px;">
-              <td style="background: #ffffff; width: 30x;cursor: pointer; " onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 100, 2); DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 100%');">&nbsp;</td>
-              <td style="background: lightgrey; width: 30px; cursor: pointer;" onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 10, 2);DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 10%');">&nbsp;</td>
-              <td style="background: grey; width: 30px; cursor: pointer;" onclick="UpdateDomoticzVariable(vDomoticzScript_Lamp_brightness, 3, 2);DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBlanc + '&switchcmd=On', 'Lumière chambre blanc 3%');">&nbsp;</td>
-              <td style="background: #BE0000; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeRouge + '&switchcmd=On', 'Lumière chambre rouge');">&nbsp;</td>
-              <td style="background: #E53B97; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeRose + '&switchcmd=On', 'Lumière chambre rose');">&nbsp;</td>
-              <td rowspan="2" style="opacity: 1; width: 64px; cursor: pointer; background-image: url('dashboard/images/lumiere-cycle.png'); background-size: contain; background-repeat:no-repeat;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzIDLampeChambreColorChange + '&switchcmd=Toggle', 'Lumière chambre - Rotation des couleurs pendant 1h');"></td>
-            </tr>
-            <tr style="height: 30px;">
-              <td style="background: BlueViolet; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeViolet + '&switchcmd=On', 'Lumière chambre violet');">&nbsp;</td>
-              <td style="background: blue; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeBleu + '&switchcmd=On', 'Lumière chambre bleu');">&nbsp;</td>
-              <td style="background: cyan; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeCyan + '&switchcmd=On', 'Lumière chambre cyan');">&nbsp;</td>
-              <td style="background: LawnGreen; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeVert + '&switchcmd=On', 'Lumière chambre vert');">&nbsp;</td>
-              <td style="background: orange; width: 30px; cursor: pointer;" onclick="DomoticzCallAPI('type=command&param=switchlight&idx=' + vDomoticzTelecommandeJaune + '&switchcmd=On', 'Lumière chambre orange');">&nbsp;</td>
-            </tr>
-          </table>
-
-
-          </div>
-        </div>
       </div>
 
 
 
 
 
-      <!-- 2è colonne : météo, vélib, ratp -->
+      <!-- 2è colonne : météo, vélib, ratp (milieu) -->
       <div class="col-lg-5 col-lg-pull-3 col-sm-12"> 
         
         <div id="digiclock"></div>
         
-        <div class="blocmodule" style="background-color:#393941;border-color:#393941;">
-           <div class="blocmodule-title" style="font-size: 15px; color: white;"><img class="blocmodule-title-logo" id="pluie-title" src="dashboard/images/pluie.png" alt="Pluie">&nbsp;&nbsp;<span id="pluie-title-txt"></span></div>
-          <div class="blocmodule-body" id="pluieuneheure"></div>
+        <div class="blocmodule" style="background-color:#393941;border-color:#393941; margin-top: 15px;">
+           <div class="blocmodule-title"><img class="blocmodule-title-logo" id="pluie-title" src="dashboard/images/pluie.png" alt="Pluie">&nbsp;&nbsp;<span id="pluie-title-txt" style="font-size: 15px; color: white;">&nbsp;</span></div>
+          <div class="blocmodule-body" id="pluieuneheure">
+            <table style="margin: 0px auto;">
+              <thead><tr><th><span class="graph-pluie-heure-time"></span></th></tr></thead>
+              <tbody><tr style="height: 31px"><td></td></tr></tbody>
+            </table>
+          </div>
         </div>
 
-        <table style="width: 100%;">
+        <table style="width: 100%">
           <tr>
-            <td>
-              <div class="blocmodule">
+            <td style="width: 51%">
+              <div class="blocmodule" style="margin-top: 10px">
                 <div class="blocmodule-title"><img class="blocmodule-title-logo" id="velib-title" src="dashboard/images/velib.png" alt="Vélib"></div>
                 <div class="blocmodule-body">
                   <table style="width: 100%;">
                     <tr>
-                      <td style="width: 50%;border-right:1px solid grey;">Bd Clichy</td>
-                      <td style="width: 50%;">Rue Duperré</td>
+                      <td style="border-right:1px solid grey;">Bd Clichy</td>
+                      <td>Rue Duperré</td>
                     </tr>
                     <tr>
-                      <td style="border-right:1px solid grey;"><span id="velibtext1" style="font-size: 35px"></span></td>
-                      <td><span id="velibtext2" style="font-size: 35px"></span></td>
+                      <td style="border-right:1px solid grey;"><span id="velibtext1" style="font-size: 36px">&nbsp;</span></td>
+                      <td><span id="velibtext2" style="font-size: 36px">&nbsp;</span></td>
                     </tr>
                   </table>
                 </div>
               </div>
             </td>
-            <td>
-              <div class="blocmodule">
+            <td style="width: 49%">
+              <div class="blocmodule" style="margin-top: 10px; cursor: pointer;" OnClick='OpenOverlayPage("https://www.airparif.fr");'>
                  <div class="blocmodule-title"><img class="blocmodule-title-logo" id="airparif-title" src="dashboard/images/airparif.png" alt="AirParif"></div>
-                <div class="blocmodule-body" id="airparif" style="text-align: right;">
-                  Hier : <span id="airpariftext1" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;"></span><br>
-                  Aujourd'hui : <span id="airpariftext2" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;"></span><br>
-                  Demain : <span id="airpariftext3" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;"></span> 
+                <div class="blocmodule-body" id="airparif" style="text-align: right; padding-top: 4px; padding-left: 3px">
+                  &nbsp;&nbsp;Hier : <span id="airpariftext1" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;">&nbsp;</span><br>
+                  Aujourd'hui : <span id="airpariftext2" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;">&nbsp;</span><br>
+                  Demain : <span id="airpariftext3" style="display: inline-block; text-align: center; border-radius: 8px; width: 100px; margin: 1px 5px 1px 1px;">&nbsp;</span> 
 
                 </div>
               </div>
@@ -546,11 +617,11 @@
           </tr>
         </table>
         
-        <div class="blocmodule" onclick="OpenOverlayPage('/dashboard/ratp.html');event.stopPropagation();" style="cursor: pointer;">
+        <div class="blocmodule" style="margin-top: 10px; cursor: pointer;" onclick="OpenOverlayPage('/dashboard/ratp.html');">
           <div class="blocmodule-title"><img class="blocmodule-title-logo" id="ratp-title" src="dashboard/images/ratp.png" alt="Ratp"></div>
           <div class="blocmodule-body" style="text-align: left; padding-left: 5px; font-size: 17px;">
-              <span id="ratptext1"></span><br>
-              <span id="ratptext2"></span><br>
+              <span id="ratptext1">&nbsp;</span><br>
+              <span id="ratptext2">&nbsp;</span><br>
               
           </div>
         </div>
@@ -561,21 +632,11 @@
   </div> <!-- /container -->
 
 
-
-  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-  <!-- Include all compiled plugins (below), or include individual files as needed -->
-  <script src="dashboard/jquery-3.1.0.min.js"></script>
-
-  <script src="dashboard/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-  <script src="dashboard/bootstrap-3.3.7/js/bootstrap-select.min.js"></script>
-  <script src="dashboard/bootstrap-3.3.7/js/bootstrap-switch.min.js"></script>
-
-  <script type="text/javascript" src="dashboard/cross-origin/jquery.ajax-cross-origin.min.js"></script>
+  <script type="text/javascript" src="dashboard/dashboard.js"></script>
 
   <script type="text/javascript" src="dashboard/jdigiclock/jquery.jdigiclock.js"></script>
 
-  <script  type="text/javascript" src="dashboard/dashboard.js"></script>
-  <script  type="text/javascript" src="dashboard/bootstrap-3.3.7/js/notify.js"></script>
+  <script type="text/javascript" src="dashboard/bootstrap-3.3.7/js/notify.js"></script>
 
   </body>
 </html>
