@@ -11,19 +11,18 @@ vDomoticzIDVoletsSalonG = 50;
 vDomoticzIDVoletsSalonD = 49;
 vDomoticzIDVoletsChambre = 46;
 vDomoticzIDVoletsSdb = 48;
-vDomoticzIDTempSalon = 107;
+vDomoticzIDTempSalon = 1026;
 vDomoticzIDTempChambre = 381;
-vDomoticzIDTempSdb = 108;
+vDomoticzIDTempSdb = 1025;
 vDomoticzIDTempDehors = 458;
-vDomoticzIDChauffageSalonAutoPresence = 105;
+vDomoticzIDChauffageAutoPresence = 105;
+vDomoticzIDChauffageAutoPlanif = 82;
 vDomoticzIDChauffageSalonConsigne = 86;
 vDomoticzIDChauffageSalonOnOff = 23;
 vDomoticzIDChauffageSalonConfort = 25;
-vDomoticzIDChauffageChambreAuto = 82;
 vDomoticzIDChauffageChambreConsigne = 138;
 vDomoticzIDChauffageChambreOnOff = 27;
 vDomoticzIDChauffageChambreConfort = 26;
-vDomoticzIDChauffageSdbAuto = 82;
 vDomoticzIDChauffageSdbConsigne = 139;
 vDomoticzIDChauffageSdbOnOff = 33;
 vDomoticzIDPrise = 6;
@@ -31,7 +30,7 @@ vDomoticzIDReveil = 52;
 vDomoticzIDPowerOffPrise2h = 35;
 vDomoticzIDLampeChambreColorChange = 36;
 vDomoticzIDLampe = 66;
-vDomoticzIDCamera = 999;
+vDomoticzIDCamera = 912;
 
 vDomoticzTelecommandeBlanc = 147;
 vDomoticzTelecommandeRouge = 148;
@@ -53,6 +52,7 @@ vDomoticzVar_Chauffage_salon_Consigne = "Var_Chauffage_salon_Consigne";
 vDomoticzVar_Chauffage_chambre_Consigne = "Var_Chauffage_chambre_Consigne";
 vDomoticzVar_Alarmclock = "Var_Alarmclock";
 vDomoticzScript_Presence_Maison = "Script_Presence_Maison";
+vDomoticzScript_Presence2_Passif = "Script_Presence2_Passif";
 vDomoticzScript_Lamp_brightness = "Script_Lamp_brightness"
 vDomoticzScript_Mode_Maison = "Script_Mode_Maison";
 vDomoticzScript_Mode_Volets = "Script_Mode_Volets";
@@ -64,24 +64,21 @@ proxyGoogleCrossOrigin = "https://script.google.com/macros/s/XXXX";
 // Module Pluie 1h (API non documentée) pour le 9e, besoin d'un proxy pour le cross origin
 PluieUneHeureURL = "http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/751090";
 
-// Module Vélib
-VelibAPIKey = "XXXXX"; // Clef d'identification à l'API. ATTENTION : si modification, modifier les autres scripts Velib (type page PHP sur Synology)
-VelibAPIURL = "https://api.jcdecaux.com/vls/v1/stations/";
-
 // Module AirParif (parse page html)
 AirParifURL = "http://www.airparif.asso.fr";
 
 // Module RATP, API retro engineered par Pierre Grimaud
 RatpURL = "https://api-ratp.pierre-grimaud.fr/v3/traffic/metros/";
+RatpURLAll = "https://api-ratp.pierre-grimaud.fr/v3/traffic";
 RatpLigne1 = "2";
 RatpLigne2 = "12";
 
 // Module Calendrier Google (remplacer les &amp; par &)
-CalendarURL = "https://calendar.google.com/calendar/embed?showTitle=0&showNav=0&showDate=0&showPrint=0&showTabs=0&showCalendars=0&showTz=0&mode=AGENDA&height=213&wkst=2&bgcolor=%23333333&src=XXXX&color=%231B887A&ctz=Europe%2FParis";
+CalendarURL = "https://calendar.google.com/calendar/embed?showTitle=0&showNav=0&showDate=0&showPrint=0&showTabs=0&showCalendars=0&showTz=0&mode=AGENDA&height=213&wkst=2&bgcolor=%23333333&src=login%40gmail.com&color=%231B887A&ctz=Europe%2FParis";
 
 
 // Delay en minutes entre le passage d'un état de détection à un autre (ex : de présent à absent)
-// Valeurs conseillées : 20 en modePresence 3, 15 en modePrésence 2
+// Valeurs conseillées : 20 en modePresence 3, 16 en modePrésence 2
 var delay_minutes = 15;  // A mettre également à jour dans script_time_presence_ping.lua
 
 // Temps de fermeture d'un volet en secondes
@@ -94,9 +91,14 @@ vTimeVoletFermeture = 19;
 
 // Initialisation des paramètres du script
 vDomoticzLastUpdate = ""; 
-vDomoticzAPIError = 0;
+vDomoticzStopAPIConnection = 0;
 vDomoticzInitSwitchJS = 0;
 TimeNowServer = new Date();  // Initialisation de l'heure serveur sur l'heure du client
+vModeMaison = "";
+vChauffageAutoPresence = "";
+vDomoticzInfo_Chauffage_Pourcentage = -1;
+vDomoticzChauffageSalonConsigne = "";
+vDomoticzChauffageSalonOnOff = "";
 // Statuts pour gérer les bouton de volets (animation + bouton commun au salon)
 vDomoticzVoletsSalonGaucheStatut = "unknown"; vDomoticzVoletsSalonGaucheLastUpdate = 0;
 vDomoticzVoletsSalonDroitStatut = "unknown";  vDomoticzVoletsSalonDroitLastUpdate = 0;
@@ -109,6 +111,7 @@ function sleep(milliseconds){
     var waitUntil = new Date().getTime() + milliseconds;
     while(new Date().getTime() < waitUntil) true;
 }
+
 
 /* Fonction générique d'appel à l'API domoticz */
 function DomoticzCallAPI(JSONParam, msgInfo, msgError) {
