@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Wifi</title>
+
+    <script src="/dashboard/jquery-3.1.0.min.js"></script>
+
+  </head>
+
+  <body style="background-color: #363636;">
+  <br>  <br>   <br>   
+  <div id="wifiid" style="margin:0 auto;font-size:52pt; text-align:center; color:white">
+    Réseau<br><br>
+    Password<br><br>
+    IP: <span id="ipspan"></span>
+  </div>
+
+  <script type="application/javascript"> 
+
+    url_get_ip = "https://ipapi.co/json/"; // Service externe qui renvoie l'IP externe sous forme JSON
+
+    $.getJSON(url_get_ip, function(data) {
+
+      if( typeof data.ip != "undefined" && data.ip != "" ) {
+        external_ip = data.ip;
+        $("#ipspan").text(external_ip);
+      } 
+      else {
+        external_ip = "Error " + url_get_ip;
+        $("#ipspan").text(external_ip);
+      }
+    })
+      .fail(function(jqXHR, textStatus, errorThrown) {  // Erreur de connexion
+          external_ip = "Error " + url_get_ip;
+          $("#ipspan").text(external_ip);
+      });
+    
+  </script>
+
+  </body>
+</html>
