@@ -75,7 +75,7 @@ function SetTimeoutRecursive(TheFunction, Delay_seconds) {
 
 
 // Module RATP, API retro engineered par Pierre Grimaud
-AllMetroRatpURL = "https://api-ratp.pierre-grimaud.fr/v2/traffic/";
+AllMetroRatpURL = "https://api-ratp.pierre-grimaud.fr/v3/traffic";
 
 
 function GetAllRatpMAJ() {
@@ -83,47 +83,48 @@ function GetAllRatpMAJ() {
   $.getJSON( AllMetroRatpURL , function( data, textStatus, jqXHR ) {
 
     // Si pas d'erreur
-    if(typeof data.response != "undefined") {
+    if(typeof data.result != "undefined") {
 
       // On réinitialise la page
-      $( "#textRATP" ).html( ' ' );
+      SlugNormal = '';
+      SlugNormal_trav = '';
+      SlugAlert = '';
+      SlugCritic = '';
 
       // On boucle sur le monde de transport : metro, rer ou tramway
-      $.each(data.response, function( indexMode, elementMode ) {
+      $.each(data.result, function( indexMode, elementMode ) {
 
-        transportMode = indexMode.slice(0, -1);
+
+
+        transportMode = indexMode.slice(0, -1); // On coupe la dernière lettre du mode de transport (s)
 
         // On boucle sur les lignes du monde de transport
         $.each(elementMode, function( indexLigne, elementLigne ) {
     
           // On crée
-          $( "#textRATP" ).append('<div id="' + transportMode + elementLigne.line + '"></div>\n');
-          
-          $( "#" + transportMode + elementLigne.line ).html('<img src="/dashboard/images/ratp/ratp_' + transportMode + elementLigne.line + '.png" alt="' + elementLigne.line + '">&nbsp;');
+          if (elementLigne.slug == "critique" ) {
 
-          if ( elementLigne.slug == "normal" ) {
-              $( "#" + transportMode + elementLigne.line ).css("color", "white");
-          }
-          else if (elementLigne.slug == "critique" ) {
-              $( "#" + transportMode + elementLigne.line ).css("color", "red"); 
-              $( "#" + transportMode + elementLigne.line ).append( '<img alt="critique" src="/dashboard/images/ratp/ratp_critique.png">&nbsp;' );
+              SlugCritic += '<div style="color: red" id="' + transportMode + elementLigne.line + '"><img src="/dashboard/images/ratp/ratp_' + transportMode.toLowerCase() + elementLigne.line.toUpperCase() + '.png" alt="' + elementLigne.line.toUpperCase() + '">&nbsp;<img alt="critique" src="/dashboard/images/ratp/ratp_critique.png">&nbsp;' + elementLigne.message + '</div>\n'
           }
           else if (elementLigne.slug == "alerte" ) {
-              $( "#" + transportMode + elementLigne.line ).css("color", "orange"); 
-              $( "#" + transportMode + elementLigne.line ).append( '<img alt="alerte" src="/dashboard/images/ratp/ratp_alerte.png">&nbsp;' );
+
+              SlugAlert += '<div style="color: orange" id="' + transportMode + elementLigne.line + '"><img src="/dashboard/images/ratp/ratp_' + transportMode.toLowerCase() + elementLigne.line.toUpperCase() + '.png" alt="' + elementLigne.line.toUpperCase() + '">&nbsp;<img alt="alerte" src="/dashboard/images/ratp/ratp_alerte.png">&nbsp;' + elementLigne.message + '</div>\n'
           }
           else if (elementLigne.slug == "normal_trav") {
-              $( "#" + transportMode + elementLigne.line ).css("color", "white");
-              $( "#" + transportMode + elementLigne.line ).append( '<img alt="critique" src="/dashboard/images/ratp/ratp_travaux.png">&nbsp;' );
-          }
 
-          $( "#" + transportMode + elementLigne.line ).append( elementLigne.message );
+              SlugNormal_trav += '<div style="color: white" id="' + transportMode + elementLigne.line + '"><img src="/dashboard/images/ratp/ratp_' + transportMode.toLowerCase() + elementLigne.line.toUpperCase() + '.png" alt="' + elementLigne.line.toUpperCase() + '">&nbsp;<img alt="critique" src="/dashboard/images/ratp/ratp_travaux.png">&nbsp;' + elementLigne.message + '</div>\n'
+          }
+          else { // Normal
+              
+              SlugNormal += '<div style="color: white" id="' + transportMode + elementLigne.line + '"><img src="/dashboard/images/ratp/ratp_' + transportMode.toLowerCase() + elementLigne.line.toUpperCase() + '.png" alt="' + elementLigne.line.toUpperCase() + '">&nbsp;' + elementLigne.message + '</div>\n'
+          }
 
         });
 
-        //$( "#textRATP" ).append( '\n<br>\n' ); // Saut de ligne entre les modes de transport
-
       });
+
+
+      $( "#textRATP" ).html( SlugCritic + SlugAlert + SlugNormal_trav + SlugNormal )
 
     }
   
