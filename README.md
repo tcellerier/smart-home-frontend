@@ -45,6 +45,9 @@ Avant de remplacer les piles, activer dans les règlages :  Accept new Hardware 
 Pour conserver l'historique des données du capteur, ajouter le nouveau module dans les devices Domoticz en lui donnant par exemple le nom 'Nouveau module'. Puis appuyer sur le bouton Edit de l'ancien module, sélectionner Replace et choisir le nouveau moudule. On peut maintenant renommer le nouveau module par son nom original 'module'.
 Enfin, modifier l'identifiant du module dans le script dashboard/dashboard.js (vDomoticzIDTempXXXX)
 
+### Changement pile détecteur de fumée
+Mettre à jour l'ID du détecteur de fumée dans le script python arlo.py
+
 
 ### Changement de téléphone ou d'ordinateur (script détection présence)
 * Mettre à jour les adresses IP dans les variables Domoticz Var_IP_Computer_ping et/ou  Var_IP_Tel_ping
